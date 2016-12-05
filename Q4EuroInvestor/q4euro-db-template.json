@@ -1,0 +1,791 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Rackspace Hosting - DB Instance",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "SSHKeyPair": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "AppSubnets": {
+      "Description": "App Subnet IDs",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "AppGroupName": {
+      "Description": "Name",
+      "Type": "String",
+      "Default": "DB"
+    },
+    "VPC": {
+      "Description": "VPC",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PrivateIpAddress": {
+      "Description": "Private IP Addresses",
+      "Type": "CommaDelimitedList",
+      "Default": "172.16.40.100"
+    },
+    "ADDomain": {
+      "Description": "AD Domain Name for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain value."
+    },
+    "ADDirectory": {
+      "Description": "AD Directory ID for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain ID value."
+    },
+    "ADDNS": {
+      "Description": "Directory Services DNS IPs.",
+      "Type": "CommaDelimitedList"
+    },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "OctopusEnvironment": {
+        "Description": "The Octopus environment that this instance will be registered in.",
+        "Type":"String"
+    }
+  },
+  "Mappings": {
+    "AWSRegionWinAMI": {
+      "eu-west-1": {
+        "64": "ami-55084526"
+      }
+    }
+  },
+  "Resources": {
+    "DB01": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "Init": [
+              "cfnConfig",
+              "ServerInitCommands",
+              "finalize"
+            ],
+            "Update": [
+              "cfnConfig",
+              "ServerInitCommands",
+              "finalize"
+            ]
+          },
+          "cfnConfig": {
+            "files": {
+              "c:\\cfn\\cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "interval=10\n"
+                    ]
+                  ]
+                }
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                      "action=cfn-init.exe --configsets Update --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource DB01 ",
+                      " --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "services": {
+              "windows": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "c:\\cfn\\cfn-hup.conf",
+                    "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          },
+          "finalize": {
+            "commands": {
+              "1-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cfn-signal.exe -e 0 --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource DB01 --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "waitAfterCompletion": "0"
+              }
+            }
+          }
+        },
+        "AWS::CloudFormation::Designer": {
+          "id": "e4a55ff0-0e75-4102-b791-54feeecfeb2e"
+        }
+      },
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            "0",
+            {
+              "Ref": "AppSubnets"
+            }
+          ]
+        },
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+              "Ebs" : { "VolumeSize" : "100" }
+           },
+           {
+              "DeviceName" : "/dev/sdm",
+              "Ebs" : { 
+                  "VolumeType":"io1",
+                  "Iops":"1000",
+                  "VolumeSize" : "2048" 
+              }
+           }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "Tags": [
+          {
+            "Key": "ServiceProvider",
+            "Value": "Rackspace"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "AppGroupName"
+                  },
+                  "01"
+                ]
+              ]
+            }
+          }
+        ],
+        "SecurityGroupIds": [
+          {
+            "Ref": "DBSecurityGroup"
+          }
+        ],
+        "PrivateIpAddress": {
+          "Fn::Select": [
+            "0",
+            {
+              "Ref": "PrivateIpAddress"
+            }
+          ]
+        },
+        "KeyName": {
+          "Ref": "SSHKeyPair"
+        },
+        "SsmAssociations": [
+          {
+            "DocumentName": {
+              "Ref": "SSMDocument"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+                "New-SSMAssociation -InstanceId $instanceid -Name ",
+                {
+                  "Ref": "SSMDocument"
+                },
+                " -Region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "cfn-init.exe -v --configsets Init ",
+                "--stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource LaunchConfig ",
+                "--region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "$newName = $env:COMPUTERNAME\n",
+                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"",
+                 { "Ref": "OctopusEnvironment"},
+                 "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",                  
+                "</powershell> \n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "DBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable access to Domain Controller",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "ServiceProvider",
+            "Value": "Rackspace"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AppGroupName"
+                  },
+                  "SG"
+                ]
+              ]
+            }
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "SourceSecurityGroupId": {
+              "Ref": "RDPSecurityGroup"
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "1433",
+            "ToPort": "1433",
+            "CidrIp": "172.16.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "135",
+            "ToPort": "139",
+            "CidrIp": "172.16.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "445",
+            "ToPort": "445",
+            "CidrIp": "172.16.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "135",
+            "ToPort": "139",
+            "CidrIp": "172.23.200.0/21"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "445",
+            "ToPort": "445",
+            "CidrIp": "172.23.200.0/21"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "135",
+            "ToPort": "139",
+            "CidrIp": "192.168.200.0/21"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "445",
+            "ToPort": "445",
+            "CidrIp": "192.168.200.0/21"
+          },
+          {
+            "IpProtocol": "-1",
+            "FromPort": "1",
+            "ToPort": "65535",
+            "CidrIp": "172.21.0.0/16"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
+        }
+      }
+    },
+    "SSMDocument": {
+      "Type": "AWS::SSM::Document",
+      "Properties": {
+        "Content": {
+          "schemaVersion": "1.2",
+          "description": "Join instances to an AWS Directory Service domain.",
+          "runtimeConfig": {
+            "aws:domainJoin": {
+              "properties": {
+                "directoryId": {
+                  "Ref": "ADDirectory"
+                },
+                "directoryName": {
+                  "Ref": "ADDomain"
+                },
+                "dnsIpAddresses": {
+                  "Ref": "ADDNS"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "e50164ae-407d-4e86-939e-793f1b44ecfc"
+        }
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "40f31443-c43b-4f64-ae9a-37255093d7c9"
+        }
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AppGroupName"
+              },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "b08719d7-7c1b-418b-94f0-035fa4e44f1a"
+        }
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "outputDB01": {
+      "Value": {
+        "Ref": "DB01"
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "EC2 Instance Configuration" },
+          "Parameters": [
+            "InstanceType",
+            "PrivateIpAddress",
+            "AppGroupName",
+            "VPC",
+            "AppSubnets",
+            "SSHKeyPair",
+            "RDPSecurityGroup"
+          ]
+        },
+        {
+          "Label": { "default": "Simple AD Configuration" },
+          "Parameters": [
+              "ADDomain",
+              "ADDirectory",
+              "ADDNS"
+          ]
+        },
+        {
+          "Label": { "default": "Octopus Deploy Configuration"},
+          "Parameters": [
+            "OctopusEnvironment"
+          ]
+        }
+      ]
+    },
+    "AWS::CloudFormation::Designer": {
+      "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "40f31443-c43b-4f64-ae9a-37255093d7c9": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "40f31443-c43b-4f64-ae9a-37255093d7c9"
+        ]
+      },
+      "b08719d7-7c1b-418b-94f0-035fa4e44f1a": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "40f31443-c43b-4f64-ae9a-37255093d7c9"
+        ]
+      },
+      "e50164ae-407d-4e86-939e-793f1b44ecfc": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b"
+        ]
+      },
+      "be67662e-e8c0-4c8a-853b-784a05a95d6b": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "ismemberof": [
+          "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
+        ],
+        "isrelatedto": [
+          "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e",
+          "e50164ae-407d-4e86-939e-793f1b44ecfc"
+        ]
+      },
+      "4fed13d9-bd84-4b94-bff8-29dc38297e04": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "be67662e-e8c0-4c8a-853b-784a05a95d6b"
+        ]
+      },
+      "e4a55ff0-0e75-4102-b791-54feeecfeb2e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "ismemberof": [
+          "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
+        ],
+        "isrelatedto": [
+          "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e",
+          "e50164ae-407d-4e86-939e-793f1b44ecfc"
+        ]
+      },
+      "0cf3a908-edaa-4b04-b439-a3d9af16ebad": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": [],
+        "isconnectedto": [
+          "e4a55ff0-0e75-4102-b791-54feeecfeb2e",
+          "be67662e-e8c0-4c8a-853b-784a05a95d6b"
+        ],
+        "ismemberof": [
+          "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b"
+        ]
+      },
+      "0be91b50-cc2d-4169-84ba-ddfcfb683ddb": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "e4a55ff0-0e75-4102-b791-54feeecfeb2e"
+        ]
+      }
+    }
+  }    
+}

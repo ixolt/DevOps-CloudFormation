@@ -1,0 +1,960 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "VPCID": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Select Virtual Private Cloud ID"
+    },
+    "AppSubnet": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets for Application"
+    },
+    "ELBSubnet": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets for Elastic Loadbalancer"
+    },
+    "ELBType": {
+      "Type": "String",
+      "Default": "internal",
+      "AllowedValues": [
+        "internal",
+        "internet-facing"
+      ],
+      "Description": "Should Loadbalancer be public or private?"
+    },
+    "InstancesPublicIP": {
+      "Type": "String",
+      "Default": "False",
+      "AllowedValues": [
+        "False",
+        "True"
+      ],
+      "Description": "Specifies whether to launch instances with public IP addresses in your VPC"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "APPGroupName": {
+      "Description": "EC2 Server Instance Name",
+      "Type": "String",
+      "ConstraintDescription": "Must follow normal syntax conventions"
+    },
+    "ADDomain": {
+      "Description": "AD Domain Name for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain value."
+    },
+    "ADDirectory": {
+      "Description": "AD Directory ID for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain ID value."
+    },
+    "ADDNS": {
+      "Description": "Directory Services DNS IPs.",
+      "Type": "CommaDelimitedList"
+    }
+  },
+  "Mappings": {
+    "AWSRegionWinAMI": {
+      "us-east-1": {
+        "64": "ami-a5b599b2"
+      }
+    }
+  },
+  "Resources": {
+    "ServerGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT20M",
+          "Count": "1"
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": "1",
+          "MinInstancesInService": "1",
+          "PauseTime": "PT20M",
+          "WaitOnResourceSignals": "true"
+        }
+      },
+      "Properties": {
+        "VPCZoneIdentifier": {
+          "Ref": "AppSubnet"
+        },
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfig"
+        },
+        "MinSize": "1",
+        "MaxSize": "10",
+        "DesiredCapacity": "1",
+        "LoadBalancerNames": [
+          {
+            "Ref": "ElasticLoadBalancer"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "ServiceProvider",
+            "Value": "Rackspace",
+            "PropagateAtLaunch": "True"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "APPGroupName"
+            },
+            "PropagateAtLaunch": "True"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "3672294f-bd17-4ff6-90d8-fcb02fd1af92"
+        }
+      }
+    },
+    "LaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": {
+          "Ref": "InstancesPublicIP"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+              "Ebs" : { "VolumeSize" : "100" }
+           }
+        ],          
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+                "New-SSMAssociation -InstanceId $instanceid -Name ",
+                {
+                  "Ref": "SSMDocument"
+                },
+                " -Region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "cfn-init.exe -v --configsets Init ",
+                "--stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource LaunchConfig ",
+                "--region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "$newName = $env:COMPUTERNAME\n",
+                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"admin-web-server\"\n",
+                "</powershell>"
+              ]
+            ]
+          }
+        },
+        "IamInstanceProfile": {
+          "Ref": "InstanceRoleInstanceProfile"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "Init": [
+              "cfnConfig",
+              "finalize"
+            ],
+            "Update": [
+              "cfnConfig",
+              "finalize"
+            ]
+          },
+          "cfnConfig": {
+            "files": {
+              "c:\\cfn\\cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "interval=10\n"
+                    ]
+                  ]
+                }
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                      "action=cfn-init.exe --configsets Update --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource LaunchConfig ",
+                      " --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "services": {
+              "windows": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "c:\\cfn\\cfn-hup.conf",
+                    "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          },
+          "finalize": {
+            "commands": {
+              "1-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cfn-signal.exe -e 0 ",
+                      "--stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource ServerGroup ",
+                      "--region ",
+                      {
+                        "Ref": "AWS::Region"
+                      }
+                    ]
+                  ]
+                },
+                "waitAfterCompletion": "0"
+              }
+            }
+          }
+        },
+        "AWS::CloudFormation::Designer": {
+          "id": "160b9e17-b280-4b7a-ae37-7dc1f462771e"
+        }
+      }
+    },
+    "SSMDocument": {
+      "Type": "AWS::SSM::Document",
+      "Properties": {
+        "Content": {
+          "schemaVersion": "1.2",
+          "description": "Join instances to an AWS Directory Service domain.",
+          "runtimeConfig": {
+            "aws:domainJoin": {
+              "properties": {
+                "directoryId": {
+                  "Ref": "ADDirectory"
+                },
+                "directoryName": {
+                  "Ref": "ADDomain"
+                },
+                "dnsIpAddresses": {
+                  "Ref": "ADDNS"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "9d4d5520-95d4-401d-8b75-d153615afcc0"
+        }
+      }
+    },
+    "ScaleUpPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": {
+          "Ref": "ServerGroup"
+        },
+        "Cooldown": "60",
+        "ScalingAdjustment": "1"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "d72760e2-555e-4024-a63c-9cc91efcab6b"
+        }
+      }
+    },
+    "ScaleDownPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": {
+          "Ref": "ServerGroup"
+        },
+        "Cooldown": "60",
+        "ScalingAdjustment": "-1"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "341ee0dd-3541-479a-8625-c66b24242e04"
+        }
+      }
+    },
+    "CPUAlarmHigh": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "90",
+        "AlarmActions": [
+          {
+            "Ref": "ScaleUpPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": {
+              "Ref": "ServerGroup"
+            }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "1224ef49-d406-4e7a-ae1b-df3cbf744461"
+        }
+      }
+    },
+    "CPUAlarmLow": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-down if CPU < 60% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "60",
+        "AlarmActions": [
+          {
+            "Ref": "ScaleDownPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": {
+              "Ref": "ServerGroup"
+            }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "dd7be010-f0a7-42cd-a76d-8813240536e0"
+        }
+      }
+    },
+    "ElasticLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "",
+            [
+              "ELB-",
+              {
+                "Ref": "APPGroupName"
+              },
+              "-Group"
+            ]
+          ]
+        },
+        "Subnets": {
+          "Ref": "ELBSubnet"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "ELBSecurityGroup"
+          }
+        ],
+        "CrossZone": "true",
+        "Scheme": {
+          "Ref": "ELBType"
+        },
+        "Listeners": [
+          {
+            "LoadBalancerPort": "80",
+            "InstancePort": "80",
+            "Protocol": "HTTP"
+          },
+          {
+            "LoadBalancerPort": "443",
+            "InstancePort": "443",
+            "Protocol": "TCP"
+          }
+        ],
+        "HealthCheck": {
+          "Target": "HTTP:8080/api/healthcheck",
+          "HealthyThreshold": "3",
+          "UnhealthyThreshold": "5",
+          "Interval": "30",
+          "Timeout": "5"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "a0e9f516-5a0e-4056-8e30-56dfce8e3293"
+        }
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access and HTTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "SourceSecurityGroupId": {
+              "Ref": "RDPSecurityGroup"
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "135",
+            "ToPort": "135",
+            "CidrIp": "172.16.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "445",
+            "ToPort": "445",
+            "CidrIp": "172.16.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "CidrIp": "0.0.0.0/0"
+          },            
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "1e14e328-bf25-4820-b17a-d1e5114fd242"
+        }
+      }
+    },
+    "ELBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "de434941-b22f-41ad-9d8a-4cdab587196d"
+        }
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "2d39f5d6-c8c1-46f5-8651-f05ccb5a17f5"
+        }
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "APPGroupName"
+              },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "fd64f4d4-cca3-43ba-9974-c7862f170a7b"
+        }
+      }
+    },
+    "InstanceRoleInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "8b536a54-16f5-4581-932f-69dccd936c96"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "URL": {
+      "Description": "URL of the website",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "ElasticLoadBalancer",
+                "DNSName"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Designer": {
+      "2d39f5d6-c8c1-46f5-8651-f05ccb5a17f5": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "8b536a54-16f5-4581-932f-69dccd936c96": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "2d39f5d6-c8c1-46f5-8651-f05ccb5a17f5"
+        ]
+      },
+      "fd64f4d4-cca3-43ba-9974-c7862f170a7b": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "2d39f5d6-c8c1-46f5-8651-f05ccb5a17f5"
+        ]
+      },
+      "de434941-b22f-41ad-9d8a-4cdab587196d": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "1e14e328-bf25-4820-b17a-d1e5114fd242": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "a0e9f516-5a0e-4056-8e30-56dfce8e3293": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "ismemberof": [
+          "de434941-b22f-41ad-9d8a-4cdab587196d"
+        ]
+      },
+      "9d4d5520-95d4-401d-8b75-d153615afcc0": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "160b9e17-b280-4b7a-ae37-7dc1f462771e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "ismemberof": [
+          "1e14e328-bf25-4820-b17a-d1e5114fd242"
+        ],
+        "isrelatedto": [
+          "9d4d5520-95d4-401d-8b75-d153615afcc0",
+          "8b536a54-16f5-4581-932f-69dccd936c96"
+        ]
+      },
+      "de2dfadf-3c9b-4ee8-b31e-18381bf31518": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "3672294f-bd17-4ff6-90d8-fcb02fd1af92": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": [],
+        "isconnectedto": [
+          "a0e9f516-5a0e-4056-8e30-56dfce8e3293"
+        ],
+        "isassociatedwith": [
+          "160b9e17-b280-4b7a-ae37-7dc1f462771e"
+        ],
+        "isrelatedto": [
+          "de2dfadf-3c9b-4ee8-b31e-18381bf31518"
+        ]
+      },
+      "341ee0dd-3541-479a-8625-c66b24242e04": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "3672294f-bd17-4ff6-90d8-fcb02fd1af92"
+        ]
+      },
+      "dd7be010-f0a7-42cd-a76d-8813240536e0": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "341ee0dd-3541-479a-8625-c66b24242e04",
+          "3672294f-bd17-4ff6-90d8-fcb02fd1af92"
+        ]
+      },
+      "d72760e2-555e-4024-a63c-9cc91efcab6b": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 450
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "3672294f-bd17-4ff6-90d8-fcb02fd1af92"
+        ]
+      },
+      "1224ef49-d406-4e7a-ae1b-df3cbf744461": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 450
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "d72760e2-555e-4024-a63c-9cc91efcab6b",
+          "3672294f-bd17-4ff6-90d8-fcb02fd1af92"
+        ]
+      }
+    }
+  }
+}

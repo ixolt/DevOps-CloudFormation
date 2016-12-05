@@ -1,0 +1,644 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Rackspace Hosting - Cache Instance",
+    "Metadata": {
+    "LastUpdated": "2016-03-17",
+    "UpdatedBy": "RSabounds",
+    "AWS::CloudFormation::Interface" : {
+      "ParameterGroups" : [
+        {
+          "Label" : { "default" : "VPC Configuration" },
+          "Parameters" : [ "VPC","RDPSecurityGroup","WebSecurityGroup","PrivateWebSecurityGroup","AppSecurityGroup" ]
+        },
+        {
+          "Label" : { "default" : "Cache Server Configuration" },
+          "Parameters" : [ "AppGroupName","InstanceType","AppSubnets","SSHKeyPair" ]
+        },
+        {
+          "Label" : { "default" : "AD Configuration" },
+          "Parameters" : [ "ADDomain","ADDirectory","ADDNS" ]
+        }
+      ]
+    }
+  },
+  "Parameters" : {
+    "VPC" : {
+      "Description" : "VPC",
+      "Type"        : "AWS::EC2::VPC::Id"
+    },
+    "RDPSecurityGroup" : {
+      "Description" : "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "WebSecurityGroup" : {
+      "Description" : "The Security Group for Web Server access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "PrivateWebSecurityGroup" : {
+      "Description" : "The Security Group for Private Web Server access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },      
+    "AppSecurityGroup"                   : {
+      "Description" : "The Security Group for App Server access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "AppGroupName" : {
+      "Description" : "Name",
+      "Type"        : "String",
+      "Default"     : "Cache"
+    },
+    "InstanceType" : {
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues": [ "t2.micro", "t2.small", "t2.medium", "t2.large", "m3.medium", "m3.large", "m3.xlarge",
+        "m3.2xlarge","m4.large", "m4.xlarge", "m4.2xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge",
+        "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "r3.large", "r3.xlarge",
+        "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge" ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description" : "Select instance type"
+    },
+    "AppSubnets" : {
+      "Description" : "App Subnet IDs",
+      "Type"        : "List<AWS::EC2::Subnet::Id>"
+    },
+    "SSHKeyPair" : {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+    "ADDomain": {
+      "Description": "AD Domain Name for use with AWS",
+      "Type": "String",
+      "ConstraintDescription" : "must be the a valid Domain value."
+    },
+    "ADDirectory": {
+      "Description": "AD Directory ID for use with AWS",
+      "Type": "String",
+      "ConstraintDescription" : "must be the a valid Domain ID value."
+    },
+    "ADDNS"    : {
+      "Description": "Directory Services DNS IPs.",
+      "Type": "CommaDelimitedList"
+    }
+  },
+  "Mappings": {
+    "AWSRegionWinAMI": {
+      "us-east-1": {
+        "64": "ami-3f0c4628"
+      }
+    }
+  },
+  "Resources" : {
+    "Cache01" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "Init"    : [ "cfnConfig", "finalize" ],
+            "Update":   [ "cfnConfig", "finalize" ]
+          },
+          "cfnConfig"    : {
+            "files" : {
+              "c:\\cfn\\cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackName" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n",
+                  "interval=10\n"
+                ]]}
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf" : {
+                "content": { "Fn::Join" : ["", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                  "action=cfn-init.exe --configsets Update --stack ",
+                  { "Ref" : "AWS::StackName" }, " --resource Cache01 ",
+                  " --region ", { "Ref" : "AWS::Region" }, "\n"
+                ]]}
+              },
+              "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe": {
+                "source":"http://packages.couchbase.com/releases/4.1.0/couchbase-server-community_4.1.0-windows_amd64.exe"  
+              },
+              "C:\\Install\\couchbase_install.iss": {
+                "source":"https://s3.amazonaws.com/q4-server-automation-staging/couchbase_install.iss"  
+              }
+            },
+            "commands":{
+                "1-install": {
+                    "command": "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe /s /f1\"C:\\Install\\couchbase_install.iss\""
+                }
+            },
+            "services" : {
+              "windows" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"]
+                }
+              }
+            }
+          },
+          "finalize" : {
+            "commands" : {
+              "1-signal-success" : {
+                "command" : {
+                  "Fn::Join" : [ "", [ "cfn-signal.exe -e 0 --stack ", { "Ref" : "AWS::StackName" }," --resource Cache01 --region ", { "Ref" : "AWS::Region" }, "\n" ] ]
+                },
+                "waitAfterCompletion" : "0"
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "ImageId": { 
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ] 
+        },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+              "Ebs" : { "VolumeSize" : "50" }
+           }
+        ],            
+        "SubnetId" : "subnet-14a00539",
+        "PrivateIpAddress": "172.16.31.101",
+        "IamInstanceProfile" : { "Ref" : "InstanceProfile" },
+        "Tags" : [
+          { "Key" : "ServiceProvider", "Value" : "Rackspace" },
+          { "Key" : "Name", "Value" : { "Fn::Join" : ["-", [{ "Ref" : "AppGroupName" }, "01"] ]} }
+        ],
+        "SecurityGroupIds" : [ { "Ref" : "CacheSecurityGroup"} ],
+        "KeyName" : { "Ref" : "SSHKeyPair" },
+        "SsmAssociations" : [ { "DocumentName" : {"Ref" : "SSMDocument"} } ],
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [ "", [
+              "<powershell>\n",
+              "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+              "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref" : "SSMDocument" }," -Region ", { "Ref" : "AWS::Region" }, "\n",
+              "cfn-init.exe -v --configsets Init ","--stack ", { "Ref" : "AWS::StackName" }," --resource Cache01 ","--region ", { "Ref" : "AWS::Region" }, "\n",
+              "\n",
+              "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False\n",
+              "$newName = $env:COMPUTERNAME\n",
+              "$env:path = $env:path + \";C:\\program files\\Couchbase\\Server\\bin\\\"\n",
+              "couchbase-cli cluster-init -c 172.16.31.101:8091 --cluster-init-username=Administrator --cluster-init-password=sunset00 --cluster-init-ramsize=8529\n",
+              "couchbase-cli bucket-create -c 172.16.31.101:8091 --bucket=DataBucket --bucket-password=q4pass1234! --bucket-type=couchbase --bucket-ramsize=2000 --bucket-replica=1 -u Administrator -p sunset00\n",
+              "couchbase-cli bucket-create -c 172.16.31.101:8091 --bucket=VersionBucket --bucket-password=q4pass1234! --bucket-type=couchbase --bucket-ramsize=2000 --bucket-replica=1 -u Administrator -p sunset00\n",                
+              "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+              ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"cache-server\"\n",
+              "</powershell> \n"
+            ]]
+          }
+        }
+      }
+    },
+    "Cache02" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "Init"    : [ "cfnConfig", "finalize" ],
+            "Update":   [ "cfnConfig", "finalize" ]
+          },
+          "cfnConfig"    : {
+            "files" : {
+              "c:\\cfn\\cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackName" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n",
+                  "interval=10\n"
+                ]]}
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf" : {
+                "content": { "Fn::Join" : ["", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                  "action=cfn-init.exe --configsets Update --stack ",
+                  { "Ref" : "AWS::StackName" }, " --resource Cache02 ",
+                  " --region ", { "Ref" : "AWS::Region" }, "\n"
+                ]]}
+              },
+              "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe": {
+                "source":"http://packages.couchbase.com/releases/4.1.0/couchbase-server-community_4.1.0-windows_amd64.exe"  
+              },
+              "C:\\Install\\couchbase_install.iss": {
+                "source":"https://s3.amazonaws.com/q4-server-automation-staging/couchbase_install.iss"  
+              }
+            },
+            "commands":{
+                "1-install": {
+                    "command": "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe /s /f1\"C:\\Install\\couchbase_install.iss\""
+                }
+            },
+            "services" : {
+              "windows" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"]
+                }
+              }
+            }
+          },
+          "finalize"        : {
+            "commands" : {
+              "1-signal-success" : {
+                "command" : {
+                  "Fn::Join" : [ "", [ "cfn-signal.exe -e 0 --stack ", { "Ref" : "AWS::StackName" }," --resource Cache02 --region ", { "Ref" : "AWS::Region" }, "\n" ] ]
+                },
+                "waitAfterCompletion" : "0"
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "ImageId": { 
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ] 
+        },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+              "Ebs" : { "VolumeSize" : "50" }
+           }
+        ],                      
+        "SubnetId" : "subnet-14a00539",
+        "PrivateIpAddress": "172.16.31.100",
+        "IamInstanceProfile" : { "Ref" : "InstanceProfile" },
+        "Tags" : [
+          { "Key" : "ServiceProvider", "Value" : "Rackspace" },
+          { "Key" : "Name", "Value" : { "Fn::Join" : ["-", [{ "Ref" : "AppGroupName" }, "02"] ]} }
+        ],
+        "SecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup"} ],
+        "KeyName"           : { "Ref" : "SSHKeyPair" },
+        "SsmAssociations" : [ {
+          "DocumentName" : {"Ref" : "SSMDocument"}
+        } ],
+        "UserData"          : {
+          "Fn::Base64" : {
+            "Fn::Join" : [ "", [
+              "<powershell>\n",
+              "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+              "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref" : "SSMDocument" }," -Region ", { "Ref" : "AWS::Region" }, "\n",
+              "cfn-init.exe -v --configsets Init ","--stack ", { "Ref" : "AWS::StackName" }," --resource Cache02 ","--region ", { "Ref" : "AWS::Region" }, "\n",
+              "\n",
+              "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False\n",                
+              "$newName = $env:COMPUTERNAME\n",
+              "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+              ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"cache-server\"\n",
+              "</powershell> \n"
+            ]]
+          }
+        }
+      },
+      "DependsOn" : "Cache01"
+    },
+    "Cache03" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "Init"    : [ "cfnConfig", "finalize" ],
+            "Update":   [ "cfnConfig", "finalize" ]
+          },
+          "cfnConfig"    : {
+            "files" : {
+              "c:\\cfn\\cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackName" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n",
+                  "interval=10\n"
+                ]]}
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf" : {
+                "content": { "Fn::Join" : ["", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                  "action=cfn-init.exe --configsets Update --stack ",
+                  { "Ref" : "AWS::StackName" }, " --resource Cache03 ",
+                  " --region ", { "Ref" : "AWS::Region" }, "\n"
+                ]]}
+              },
+              "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe": {
+                "source":"http://packages.couchbase.com/releases/4.1.0/couchbase-server-community_4.1.0-windows_amd64.exe"  
+              },
+              "C:\\Install\\couchbase_install.iss": {
+                "source":"https://s3.amazonaws.com/q4-server-automation-staging/couchbase_install.iss"  
+              }
+            },
+            "commands":{
+                "1-install": {
+                    "command": "C:\\Install\\couchbase-server-community_4.1.0-windows_amd64.exe /s /f1\"C:\\Install\\couchbase_install.iss\""
+                }
+            },
+            "services" : {
+              "windows" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"]
+                }
+              }
+            }
+          },
+          "finalize"        : {
+            "commands" : {
+              "1-signal-success" : {
+                "command" : {
+                  "Fn::Join" : [ "", [ "cfn-signal.exe -e 0 --stack ", { "Ref" : "AWS::StackName" }," --resource Cache03 --region ", { "Ref" : "AWS::Region" }, "\n" ] ]
+                },
+                "waitAfterCompletion" : "0"
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "ImageId": { 
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ] 
+        },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+              "Ebs" : { "VolumeSize" : "50" }
+           }
+        ],                      
+        "SubnetId" : "subnet-f4f62faf",
+        "PrivateIpAddress": "172.16.30.100",
+        "IamInstanceProfile" : { "Ref" : "InstanceProfile" },
+        "Tags" : [
+          { "Key" : "ServiceProvider", "Value" : "Rackspace" },
+          { "Key" : "Name", "Value" : { "Fn::Join" : ["-", [{ "Ref" : "AppGroupName" }, "03"] ]} }
+        ],
+        "SecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup"} ],
+        "KeyName" : { "Ref" : "SSHKeyPair" },
+        "SsmAssociations" : [ {
+          "DocumentName" : {"Ref" : "SSMDocument"}
+        } ],
+        "UserData" : {
+          "Fn::Base64" : {
+            "Fn::Join" : [ "", [
+              "<powershell>\n",
+              "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+              "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref" : "SSMDocument" }," -Region ", { "Ref" : "AWS::Region" }, "\n",
+              "cfn-init.exe -v --configsets Init ","--stack ", { "Ref" : "AWS::StackName" }," --resource Cache03 ","--region ", { "Ref" : "AWS::Region" }, "\n",
+              "\n",
+              "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False\n",
+              "\n",
+              "$env:path = $env:path + \";C:\\program files\\Couchbase\\Server\\bin\\\"\n",
+              "couchbase-cli server-add -c 172.16.31.101:8091  -u Administrator -p sunset00 --server-add=172.16.31.100:8091 --server-add-username Administrator --server-add-password sunset00\n",
+              "couchbase-cli rebalance -c 172.16.31.101:8091 -u Administrator -p sunset00 --server-add=172.16.30.100 --server-add-username Administrator --server-add-password sunset00\n",
+              "\n",                
+              "$newName = $env:COMPUTERNAME\n",
+              "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+              ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"cache-server\"\n",
+              "</powershell> \n"
+            ]]
+          }
+        }
+      },
+      "DependsOn" : "Cache02"
+    },
+    "Cache01RecoveryAlarm" : {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2" ,
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [ {"Fn::Join" : ["", ["arn:aws:automate:", { "Ref" : "AWS::Region" }, ":ec2:recover" ]]} ],
+        "Dimensions": [{"Name": "InstanceId","Value": {"Ref": "Cache01"}}]
+      }
+    },
+    "Cache02RecoveryAlarm" : {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2" ,
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [ {"Fn::Join" : ["", ["arn:aws:automate:", { "Ref" : "AWS::Region" }, ":ec2:recover" ]]} ],
+        "Dimensions": [{"Name": "InstanceId","Value": {"Ref": "Cache02"}}]
+      }
+    },
+    "Cache03RecoveryAlarm" : {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Trigger a recovery when instance status check fails for 15 consecutive minutes.",
+        "Namespace": "AWS/EC2" ,
+        "MetricName": "StatusCheckFailed_System",
+        "Statistic": "Minimum",
+        "Period": "60",
+        "EvaluationPeriods": "15",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Threshold": "0",
+        "AlarmActions": [ {"Fn::Join" : ["", ["arn:aws:automate:", { "Ref" : "AWS::Region" }, ":ec2:recover" ]]} ],
+        "Dimensions": [{"Name": "InstanceId","Value": {"Ref": "Cache03"}}]
+      }
+    },
+    "CacheSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable access to Cache Servers",
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [
+          { "Key" : "ServiceProvider", "Value" : "Rackspace" },
+          { "Key" : "Name", "Value" : { "Fn::Join" : [ "",[ { "Ref" : "AppGroupName" }, "SG" ] ] } }
+        ],
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "3389", "ToPort" : "3389", "SourceSecurityGroupId" : {"Ref": "RDPSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "11210", "ToPort" : "11210", "SourceSecurityGroupId" : { "Ref": "WebSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "11210", "ToPort" : "11210", "SourceSecurityGroupId" : { "Ref": "PrivateWebSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "11210", "ToPort" : "11210", "SourceSecurityGroupId" : { "Ref": "AppSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "8091", "ToPort" : "8092", "SourceSecurityGroupId" : { "Ref": "WebSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "8091", "ToPort" : "8092", "SourceSecurityGroupId" : { "Ref": "PrivateWebSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "8091", "ToPort" : "8092", "SourceSecurityGroupId" : { "Ref": "AppSecurityGroup"} },
+          { "IpProtocol" : "tcp", "FromPort" : "8091", "ToPort" : "8092", "CidrIp":"172.16.30.0/24" },
+          { "IpProtocol" : "tcp", "FromPort" : "8091", "ToPort" : "8092", "CidrIp":"172.16.31.0/24"}
+        ]
+      }
+    },
+    "CacheLocal" : {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": { "Ref": "CacheSecurityGroup" }, 
+        "SourceSecurityGroupId": { "Ref": "CacheSecurityGroup" }, 
+        "IpProtocol": "tcp", 
+        "FromPort": "0", 
+        "ToPort": "65535" 
+      }
+    },
+    "SSMDocument" : {
+      "Type" : "AWS::SSM::Document",
+      "Properties" : {
+        "Content" : {
+          "schemaVersion":"1.2",
+          "description":"Join instances to an AWS Directory Service domain.",
+          "runtimeConfig":{
+            "aws:domainJoin":{
+              "properties":{
+                "directoryId": { "Ref": "ADDirectory" },
+                "directoryName":{"Ref": "ADDomain"},
+                "dnsIpAddresses": {"Ref": "ADDNS"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "InstanceRole" : {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {"Fn::Join": ["-",[{ "Ref" : "AppGroupName" },"Role"]]},
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "InstanceRole" } ]
+      }
+    },
+    "InstanceProfile"   : {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          { "Ref": "InstanceRole" }
+        ]
+      }
+    }
+  },
+  "Outputs" : {
+    "outputCache01" : {
+      "Value" : { "Ref" : "Cache01" }
+    },
+    "outputCache02" : {
+      "Value" : { "Ref" : "Cache02" }
+    },
+    "outputCache03" : {
+      "Value" : { "Ref" : "Cache03" }
+    }
+  }
+}
