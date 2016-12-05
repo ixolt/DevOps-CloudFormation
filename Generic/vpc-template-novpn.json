@@ -1,9 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Rackspace Hosting - Base VPC, Network, and HA NAT instance scaffolding. Please be aware that this template will create resources for which you will be charged.",
+  "Description": "Base VPC, Network, and HA NAT instance scaffolding. Please be aware that this template will create resources for which you will be charged.",
   "Metadata": {
-    "LastUpdated": "2016-03-02",
-    "UpdatedBy": "RSabounds",
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {

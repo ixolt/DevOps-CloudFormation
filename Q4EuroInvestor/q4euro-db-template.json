@@ -59,8 +59,8 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "PrivateIpAddress": {
-      "Description": "Private IP Addresses",
-      "Type": "CommaDelimitedList",
+      "Description": "Private IP Address",
+      "Type": "String",
       "Default": "172.16.40.100"
     },
     "ADDomain": {
@@ -218,6 +218,12 @@
             }
           ]
         },
+        "NetworkInterfaces": [
+            {
+                "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
+                "DeviceIndex" : "0"
+            }
+        ],           
         "BlockDeviceMappings" : [
            {
               "DeviceName" : "/dev/sda1",
@@ -228,7 +234,7 @@
               "Ebs" : { 
                   "VolumeType":"io1",
                   "Iops":"1000",
-                  "VolumeSize" : "2048" 
+                  "VolumeSize" : "500" 
               }
            }
         ],
@@ -260,14 +266,6 @@
             "Ref": "DBSecurityGroup"
           }
         ],
-        "PrivateIpAddress": {
-          "Fn::Select": [
-            "0",
-            {
-              "Ref": "PrivateIpAddress"
-            }
-          ]
-        },
         "KeyName": {
           "Ref": "SSHKeyPair"
         },
@@ -370,36 +368,6 @@
             "FromPort": "445",
             "ToPort": "445",
             "CidrIp": "172.16.0.0/16"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "135",
-            "ToPort": "139",
-            "CidrIp": "172.23.200.0/21"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "445",
-            "ToPort": "445",
-            "CidrIp": "172.23.200.0/21"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "135",
-            "ToPort": "139",
-            "CidrIp": "192.168.200.0/21"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "445",
-            "ToPort": "445",
-            "CidrIp": "192.168.200.0/21"
-          },
-          {
-            "IpProtocol": "-1",
-            "FromPort": "1",
-            "ToPort": "65535",
-            "CidrIp": "172.21.0.0/16"
           }
         ]
       },
@@ -577,7 +545,28 @@
           "id": "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e"
         }
       }
-    }
+    },
+    "ExternalIP01": {
+        "Type" : "AWS::EC2::EIP",
+        "Properties" : {
+            "Domain" : {"Ref": "VPCID"}
+        }
+    },
+    "NetworkInterface01":{
+        "Type" : "AWS::EC2::NetworkInterface",
+        "Properties":{
+            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnet" } ] },
+            "GroupSet" : [ { "Ref" : "DBSecurityGroup" } ],
+            "PrivateIpAddress" : {"Ref":"PrivateIpAddress"}
+        }
+    },
+    "AssociateExternalIP01" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP01", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "NetworkInterface01" }
+      }
+    },      
   },
   "Outputs": {
     "outputDB01": {
