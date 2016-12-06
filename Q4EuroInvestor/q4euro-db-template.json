@@ -234,7 +234,7 @@
               "Ebs" : { 
                   "VolumeType":"io1",
                   "Iops":"1000",
-                  "VolumeSize" : "500" 
+                  "VolumeSize" : "2048" 
               }
            }
         ],
