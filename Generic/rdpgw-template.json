@@ -486,7 +486,7 @@
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
-          "Label": { default:"EC2 Instance Configuration" },
+          "Label": { "default":"EC2 Instance Configuration" },
           "Parameters": [
             "InstanceType",
             "InstancesPublicIP",
@@ -498,10 +498,10 @@
           ]
         },
         {
-          "Label": { default: "Simple AD Configuration."},
+          "Label": { "default": "Simple AD Configuration."},
           "Parameters": [
             "ADDomain",
-            "ADDirectory".
+            "ADDirectory",
             "ADDNS"
           ]
         }

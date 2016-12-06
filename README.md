@@ -8,8 +8,6 @@ AWS.
 The templates in this folder aren't specific to any product. They are generic
 enough where they don't need to be updated much.
 
-NOTE: The VPC template does need to be updated when being deployed (the CIDR
-mappings)
 
 ## Q4EuroInvestor
 

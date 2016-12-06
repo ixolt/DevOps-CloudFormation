@@ -211,12 +211,7 @@
           "Ref": "InstanceType"
         },
         "SubnetId": {
-          "Fn::Select": [
-            "0",
-            {
-              "Ref": "AppSubnets"
-            }
-          ]
+          "Fn::Select": [ "0", { "Ref": "AppSubnets" } ]
         },
         "NetworkInterfaces": [
             {
@@ -549,13 +544,13 @@
     "ExternalIP01": {
         "Type" : "AWS::EC2::EIP",
         "Properties" : {
-            "Domain" : {"Ref": "VPCID"}
+            "Domain" : {"Ref": "VPC"}
         }
     },
     "NetworkInterface01":{
         "Type" : "AWS::EC2::NetworkInterface",
         "Properties":{
-            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnet" } ] },
+            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
             "GroupSet" : [ { "Ref" : "DBSecurityGroup" } ],
             "PrivateIpAddress" : {"Ref":"PrivateIpAddress"}
         }
