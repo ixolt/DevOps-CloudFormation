@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Rackspace Hosting - Base VPC, Network, and HA NAT instance scaffolding. Please be aware that this template will create resources for which you will be charged.",
+  "Description": "Base VPC, Network, and HA NAT instance scaffolding. Please be aware that this template will create resources for which you will be charged.",
   "Metadata": {
     "LastUpdated": "2016-03-02",
     "UpdatedBy": "RSabounds",
@@ -15,8 +15,7 @@
             "InstanceTenancy",
             "EdgeType",
             "EdgeInstanceType",
-            "SSHKeyPair",
-            "RackerPassword"
+            "SSHKeyPair"
           ]
         }
       ]
@@ -1017,10 +1016,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1070,10 +1065,6 @@
         },
         "MapPublicIpOnLaunch": "True",
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1185,10 +1176,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1246,10 +1233,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1306,10 +1289,6 @@
         },
         "MapPublicIpOnLaunch": "False",
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1429,10 +1408,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1489,10 +1464,6 @@
         },
         "MapPublicIpOnLaunch": "False",
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1551,10 +1522,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1611,10 +1578,6 @@
         },
         "MapPublicIpOnLaunch": "False",
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1673,10 +1636,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1734,10 +1693,6 @@
         "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1776,10 +1731,6 @@
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1831,10 +1782,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1910,10 +1857,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -1948,10 +1891,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -1988,10 +1927,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -2026,10 +1961,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -2066,10 +1997,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -2104,10 +2031,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -2144,10 +2067,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -2183,10 +2102,6 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Fn::Join": [
@@ -2221,10 +2136,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -2582,11 +2493,6 @@
         ],
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace",
-            "PropagateAtLaunch": "True"
-          },
-          {
             "Key": "Environment",
             "Value": {
               "Ref": "Environment"
@@ -2720,11 +2626,6 @@
         ],
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace",
-            "PropagateAtLaunch": "True"
-          },
-          {
             "Key": "Environment",
             "Value": {
               "Ref": "Environment"
@@ -2814,10 +2715,6 @@
           "Ref": "VPCBase"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Environment",
             "Value": {

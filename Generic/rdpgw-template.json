@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Description": "**WARNING** This template creates one or more Amazon EC2 instances.  You will be billed for the AWS resources used if you create a stack from this template.",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -229,10 +229,6 @@
           "Ref": "InstanceProfile"
         },
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -487,6 +483,30 @@
     }
   },
   "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { default:"EC2 Instance Configuration" },
+          "Parameters": [
+            "InstanceType",
+            "InstancesPublicIP",
+            "AppGroupName",
+            "VPCID",
+            "AppSubnet",
+            "KeyName",
+            "RDPLocation"
+          ]
+        },
+        {
+          "Label": { default: "Simple AD Configuration."},
+          "Parameters": [
+            "ADDomain",
+            "ADDirectory".
+            "ADDNS"
+          ]
+        }
+      ]
+    },
     "AWS::CloudFormation::Designer": {
       "6827f314-e25e-4ab0-8211-1683c8c6c030": {
         "size": {
