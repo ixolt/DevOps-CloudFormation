@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Rackspace Hosting - DB Instance",
+  "Description": "DB Instance",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -84,6 +84,10 @@
     "OctopusEnvironment": {
         "Description": "The Octopus environment that this instance will be registered in.",
         "Type":"String"
+    },
+    "BootstrapScriptLocation": {
+        "Description": "The S3 bucket name where Bootstrap.ps1 is located",
+        "Type": "String"
     }
   },
   "Mappings": {
@@ -210,9 +214,6 @@
         "InstanceType": {
           "Ref": "InstanceType"
         },
-        "SubnetId": {
-          "Fn::Select": [ "0", { "Ref": "AppSubnets" } ]
-        },
         "NetworkInterfaces": [
             {
                 "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
@@ -256,11 +257,6 @@
             }
           }
         ],
-        "SecurityGroupIds": [
-          {
-            "Ref": "DBSecurityGroup"
-          }
-        ],
         "KeyName": {
           "Ref": "SSHKeyPair"
         },
@@ -297,9 +293,13 @@
                 {
                   "Ref": "AWS::Region"
                 },
-                "\n",
-                "$newName = $env:COMPUTERNAME\n",
-                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                " \n",
+                "$newName = $env:COMPUTERNAME \n",
+                "Read-S3Object -BucketName ",
+                {
+                    "Ref": "BootstrapScriptLocation"
+                },
+                "-Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment \"",
                  { "Ref": "OctopusEnvironment"},
                  "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",                  
@@ -596,7 +596,8 @@
         {
           "Label": { "default": "Octopus Deploy Configuration"},
           "Parameters": [
-            "OctopusEnvironment"
+            "OctopusEnvironment",
+            "BootstrapScriptLocation"
           ]
         }
       ]
