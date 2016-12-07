@@ -91,11 +91,7 @@
     }
   },
   "Mappings": {
-    "AWSRegionWinAMI": {
-      "eu-west-1": {
-        "64": "ami-55084526"
-      }
-    }
+    "AWSRegionWinAMI": { "eu-west-1": { "64": "ami-5fc09d2c" } }
   },
   "Resources": {
     "DB01": {
@@ -105,12 +101,10 @@
           "configSets": {
             "Init": [
               "cfnConfig",
-              "ServerInitCommands",
               "finalize"
             ],
             "Update": [
               "cfnConfig",
-              "ServerInitCommands",
               "finalize"
             ]
           },
@@ -122,16 +116,8 @@
                     "",
                     [
                       "[main]\n",
-                      "stack=",
-                      {
-                        "Ref": "AWS::StackName"
-                      },
-                      "\n",
-                      "region=",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      "\n",
+                      "stack=", { "Ref": "AWS::StackName" }, "\n",
+                      "region=", { "Ref": "AWS::Region" }, "\n",
                       "interval=10\n"
                     ]
                   ]
@@ -144,16 +130,7 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
-                      "action=cfn-init.exe --configsets Update --stack ",
-                      {
-                        "Ref": "AWS::StackName"
-                      },
-                      " --resource DB01 ",
-                      " --region ",
-                      {
-                        "Ref": "AWS::Region"
-                      },
+                      "action=cfn-init.exe --configsets Update --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
                       "\n"
                     ]
                   ]
@@ -180,14 +157,7 @@
                   "Fn::Join": [
                     "",
                     [
-                      "cfn-signal.exe -e 0 --stack ",
-                      {
-                        "Ref": "AWS::StackName"
-                      },
-                      " --resource DB01 --region ",
-                      {
-                        "Ref": "AWS::Region"
-                      },
+                      "cfn-signal.exe -e 0 --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
                       "\n"
                     ]
                   ]
@@ -202,18 +172,8 @@
         }
       },
       "Properties": {
-        "ImageId": {
-          "Fn::FindInMap": [
-            "AWSRegionWinAMI",
-            {
-              "Ref": "AWS::Region"
-            },
-            "64"
-          ]
-        },
-        "InstanceType": {
-          "Ref": "InstanceType"
-        },
+        "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
+        "InstanceType": { "Ref": "InstanceType" },
         "NetworkInterfaces": [
             {
                 "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
@@ -234,75 +194,27 @@
               }
            }
         ],
-        "IamInstanceProfile": {
-          "Ref": "InstanceProfile"
-        },
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "AppGroupName"
-                  },
-                  "01"
-                ]
-              ]
-            }
+            "Value": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "01" ] ] }
           }
         ],
-        "KeyName": {
-          "Ref": "SSHKeyPair"
-        },
+        "KeyName": { "Ref": "SSHKeyPair" },
         "SsmAssociations": [
-          {
-            "DocumentName": {
-              "Ref": "SSMDocument"
-            }
-          }
-        ],
+          { "DocumentName": { "Ref": "SSMDocument" } }
+        ],          
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
-                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ",
-                {
-                  "Ref": "SSMDocument"
-                },
-                " -Region ",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "\n",
-                "cfn-init.exe -v --configsets Init ",
-                "--stack ",
-                {
-                  "Ref": "AWS::StackName"
-                },
-                " --resource LaunchConfig ",
-                "--region ",
-                {
-                  "Ref": "AWS::Region"
-                },
+                "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
                 " \n",
-                "$newName = $env:COMPUTERNAME \n",
-                "Read-S3Object -BucketName ",
-                {
-                    "Ref": "BootstrapScriptLocation"
-                },
-                "-Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"",
-                 { "Ref": "OctopusEnvironment"},
-                 "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",                  
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "</powershell> \n"
               ]
             ]
@@ -314,27 +226,11 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Enable access to Domain Controller",
-        "VpcId": {
-          "Ref": "VPC"
-        },
+        "VpcId": { "Ref": "VPC" },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AppGroupName"
-                  },
-                  "SG"
-                ]
-              ]
-            }
+            "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
           }
         ],
         "SecurityGroupIngress": [
@@ -381,15 +277,9 @@
           "runtimeConfig": {
             "aws:domainJoin": {
               "properties": {
-                "directoryId": {
-                  "Ref": "ADDirectory"
-                },
-                "directoryName": {
-                  "Ref": "ADDomain"
-                },
-                "dnsIpAddresses": {
-                  "Ref": "ADDNS"
-                }
+                "directoryId": { "Ref": "ADDirectory" },
+                "directoryName": { "Ref": "ADDomain" },
+                "dnsIpAddresses": { "Ref": "ADDNS" }
               }
             }
           }
@@ -408,14 +298,8 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "ec2.amazonaws.com"
-                ]
-              },
-              "Action": [
-                "sts:AssumeRole"
-              ]
+              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
             }
           ]
         },
@@ -529,11 +413,7 @@
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
+        "Roles": [ { "Ref": "InstanceRole" } ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -543,9 +423,7 @@
     },
     "ExternalIP01": {
         "Type" : "AWS::EC2::EIP",
-        "Properties" : {
-            "Domain" : {"Ref": "VPC"}
-        }
+        "Properties" : { "Domain" : {"Ref": "VPC"} }
     },
     "NetworkInterface01":{
         "Type" : "AWS::EC2::NetworkInterface",
@@ -773,4 +651,4 @@
       }
     }
   }    
-}
+} 
