@@ -2316,7 +2316,7 @@
           "Ref": "DBSubnetAZ1"
         },
         "RouteTableId": {
-          "Ref": "RouteTableDBAZ1"
+          "Ref": "RouteTablePublic"
         }
       },
       "Metadata": {
@@ -2332,7 +2332,7 @@
           "Ref": "DBSubnetAZ2"
         },
         "RouteTableId": {
-          "Ref": "RouteTableDBAZ2"
+          "Ref": "RouteTablePublic"
         }
       },
       "Metadata": {

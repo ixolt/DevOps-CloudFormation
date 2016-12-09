@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "DB Instance",
+  "Description": "Creates DB Instance running Windows Server 2012 R2 and Sql 2014 Standard Edition",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -99,14 +99,8 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "Init": [
-              "cfnConfig",
-              "finalize"
-            ],
-            "Update": [
-              "cfnConfig",
-              "finalize"
-            ]
+            "Init": [ "cfnConfig" ],
+            "Update": [ "cfnConfig" ]
           },
           "cfnConfig": {
             "files": {
@@ -147,22 +141,6 @@
                     "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"
                   ]
                 }
-              }
-            }
-          },
-          "finalize": {
-            "commands": {
-              "1-signal-success": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "cfn-signal.exe -e 0 --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
-                      "\n"
-                    ]
-                  ]
-                },
-                "waitAfterCompletion": "0"
               }
             }
           }
@@ -211,7 +189,10 @@
               "",
               [
                 "<powershell>\n",
-                "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
+                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+                "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" }, 
+                "\n",
+                " cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
                 " \n",
                 "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
@@ -246,7 +227,7 @@
             "IpProtocol": "tcp",
             "FromPort": "1433",
             "ToPort": "1433",
-            "CidrIp": "172.16.0.0/16"
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",

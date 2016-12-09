@@ -103,12 +103,10 @@
           "configSets": {
             "Init": [
               "cfnConfig",
-              "ServerInitCommands",
               "finalize"
             ],
             "Update": [
               "cfnConfig",
-              "ServerInitCommands",
               "finalize"
             ]
           },
@@ -182,7 +180,7 @@
                       {
                         "Ref": "AWS::StackName"
                       },
-                      " --resource DB01 --region ",
+                      " --resource RDPGW --region ",
                       {
                         "Ref": "AWS::Region"
                       },
@@ -261,25 +259,9 @@
               [
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ",
-                {
-                  "Ref": "SSMDocument"
-                },
-                " -Region ",
-                {
-                  "Ref": "AWS::Region"
-                },
+                "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" }, 
                 "\n",
-                "cfn-init.exe -v --configsets Init ",
-                "--stack ",
-                {
-                  "Ref": "AWS::StackName"
-                },
-                " --resource LaunchConfig ",
-                "--region ",
-                {
-                  "Ref": "AWS::Region"
-                },
+                "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource RDPGW ", "--region ", { "Ref": "AWS::Region" },
                 "\n",
                 "</powershell> \n"
               ]
