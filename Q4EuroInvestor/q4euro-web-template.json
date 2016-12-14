@@ -192,10 +192,10 @@
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
                 "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" }, 
                 "\n",
-                " cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
+                " cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --region ", { "Ref": "AWS::Region" },
                 " \n",
                 "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "</powershell> \n"
               ]
             ]
@@ -469,7 +469,7 @@
           }
         ],
         "HealthCheck": {
-          "Target": "HTTP:8080/api/healthcheck",
+          "Target": "HTTP:80/",
           "HealthyThreshold": "3",
           "UnhealthyThreshold": "5",
           "Interval": "30",
