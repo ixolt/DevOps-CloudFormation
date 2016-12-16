@@ -192,7 +192,7 @@
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
                 "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" }, 
                 "\n",
-                "$interfaceId = Get-EC2Instance -InstanceId $instanceId -Filter network-interface.network-interface-id \n",
+                "$interfaceId = (Get-EC2Instance -Filter @{Name=\"instance-id\";Value=$instanceid}).Instances[0].NetworkInterfaces[0].NetworkInterfaceId \n",
                 "Register-EC2PrivateIpAddress -NetworkInterfaceId $interfaceId -SecondaryPrivateIpAddressCount 1",
                 "\n",
                 "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --region ", { "Ref": "AWS::Region" },
