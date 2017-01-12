@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Description": "**WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -97,7 +97,7 @@
   },
   "Mappings": {
     "AWSRegionWinAMI": {
-      "us-west-2": { "AMI": "ami-6d91240d" }
+      "eu-west-1": { "AMI": "ami-0f3f197c" }
       }
     },
   "Resources": {
@@ -132,11 +132,25 @@
           }
         ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
-        "SsmAssociations": [{
-          "DocumentName": { "Ref": "SSMDocument" }
-        }],
-          "Tags"
-          :
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Rename-Computer -NewName EuroWebService1 -Force",
+                "\n",
+                "</powershell> \n"                
+              ]
+            ]
+          }
+        },
+        "Tags":
           [
             {
               "Key": "Name",
@@ -179,9 +193,24 @@
           }
         ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
-        "SsmAssociations": [{
-          "DocumentName": { "Ref": "SSMDocument" }
-        }],
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Rename-Computer -NewName EuroWebService2 -Force",
+                "\n",
+                "</powershell> \n"                
+              ]
+            ]
+          }
+        },
         "Tags": [
           {
             "Key": "Name",
