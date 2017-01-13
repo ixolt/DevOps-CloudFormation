@@ -137,12 +137,24 @@
             "DocumentName": { "Ref": "SSMDocument" }
           }
         ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": { "VolumeSize": "80" }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": { "VolumeSize": "100" }
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"app-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "Rename-Computer -NewName EuroWebService1 -Force",
                 "\n",
                 "</powershell> \n"                
@@ -198,12 +210,24 @@
             "DocumentName": { "Ref": "SSMDocument" }
           }
         ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": { "VolumeSize": "80" }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": { "VolumeSize": "100" }
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"app-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "Rename-Computer -NewName EuroWebService2 -Force",
                 "\n",
                 "</powershell> \n"                
