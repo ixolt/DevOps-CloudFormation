@@ -45,19 +45,6 @@
       "Type": "List<AWS::EC2::Subnet::Id>",
       "Description": "Subnets for Application"
     },
-    "ELBSubnet": {
-      "Type": "List<AWS::EC2::Subnet::Id>",
-      "Description": "Subnets for Elastic Loadbalancer"
-    },
-    "ELBType": {
-      "Type": "String",
-      "Default": "internal",
-      "AllowedValues": [
-        "internal",
-        "internet-facing"
-      ],
-      "Description": "Should Loadbalancer be public or private?"
-    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
