@@ -103,6 +103,54 @@
   "Resources": {
     "EuroIRWeb1": {
       "Type": "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "files" : {
+              "c:\\cfn\\cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n"
+                  ]]}
+              },
+              "c:\\cfn\\hooks.d\\initialize-drive-d.txt": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "REM DISKPART script to mount drive D:\n",
+                      "list disk\n",
+                      "select disk 1\n",
+                      "clean\n",
+                      "create partition primary\n",
+                      "select partition 1\n",
+                      "active\n",
+                      "format fs=ntfs quick\n",
+                      "assign letter=d\n"
+                    ]
+                  ]
+                }
+              }          
+            },
+            "commands" : {
+              "initialize-drive-d" : {
+                "command" : "c:\\cfn\\hooks.d\\diskpart.exe /s initialize-drive-d.txt"
+              }
+            },
+            
+            "services" : {
+              "windows" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\initialize-drive-d.txt"]
+                }
+              }
+            }
+          }
+        }
+      },
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
@@ -189,6 +237,54 @@
     },
     "EuroIRWeb2": {
       "Type": "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "files" : {
+              "c:\\cfn\\cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n"
+                  ]]}
+              },
+              "c:\\cfn\\hooks.d\\initialize-drive-d.txt": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "REM DISKPART script to mount drive D:\n",
+                      "list disk\n",
+                      "select disk 1\n",
+                      "clean\n",
+                      "create partition primary\n",
+                      "select partition 1\n",
+                      "active\n",
+                      "format fs=ntfs quick\n",
+                      "assign letter=d\n"
+                    ]
+                  ]
+                }
+              }          
+            },
+            "commands" : {
+              "initialize-drive-d" : {
+                "command" : "c:\\cfn\\hooks.d\\diskpart.exe /s initialize-drive-d.txt"
+              }
+            },
+            
+            "services" : {
+              "windows" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\initialize-drive-d.txt"]
+                }
+              }
+            }
+          }
+        }
+      },
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
