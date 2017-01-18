@@ -214,6 +214,8 @@
               "",
               [
                 "<powershell>\n",
+                "cfn-init.exe -v --stack ", { "Ref": "AWS::StackName" }, " --resource EuroIRWeb1", " --region ", { "Ref": "AWS::Region" },
+                "\n",
                 "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "Rename-Computer -NewName EuroIRWeb1 -Force",
@@ -348,6 +350,8 @@
               "",
               [
                 "<powershell>\n",
+                "cfn-init.exe -v --stack ", { "Ref": "AWS::StackName" }, " --resource EuroIRWeb2", " --region ", { "Ref": "AWS::Region" },
+                "\n",
                 "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
                 "Rename-Computer -NewName EuroIRWeb2 -Force",
