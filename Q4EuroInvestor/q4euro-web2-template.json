@@ -98,87 +98,11 @@
   "Mappings": {
     "AWSRegionWinAMI": {
       "eu-west-1": { "AMI": "ami-0f3f197c" }
-    }
-  },
+      }
+    },
   "Resources": {
     "EuroIRWeb1": {
       "Type": "AWS::EC2::Instance",
-      "Metadata": {
-        "AWS::CloudFormation::Init": {
-          "configSets": {
-            "Init": [
-              "cfnConfig",
-              "finalize"
-            ],
-            "Update": [
-              "cfnConfig",
-              "finalize"
-            ]
-          },
-          "cfnConfig": {
-            "files": {
-              "c:\\cfn\\cfn-hup.conf": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "[main]\n",
-                      "stack=",
-                      { "Ref": "AWS::StackId" },
-                      "\n",
-                      "region=",
-                      { "Ref": "AWS::Region" },
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "c:\\cfn\\hooks.d\\initialize-drive-d.txt": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "REM DISKPART script to mount drive D:\n",
-                      "list disk\n",
-                      "select disk 1\n",
-                      "clean\n",
-                      "create partition primary\n",
-                      "select partition 1\n",
-                      "active\n",
-                      "format fs=ntfs quick\n",
-                      "assign letter=d\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "services": {
-              "windows": {
-                "cfn-hup": {
-                  "enabled": "true",
-                  "ensureRunning": "true",
-                  "files": [ "c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\initialize-drive-d.txt" ]
-                }
-              }
-            }
-          },
-          "finalize": {
-            "commands": {
-              "initialize-drive-d": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "diskpart.exe -s ",
-                      "c:\\cfn\\hooks.d\\initialize-drive-d.txt "
-                    ]
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
@@ -237,107 +161,26 @@
               "",
               [
                 "<powershell>\n",
-                "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource EuroIRWeb1", " --region ", { "Ref": "AWS::Region" },
-                "\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
-                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" },
-                "\n",
-                "Rename-Computer -NewName EuroIRWeb1 -Force",
-                "\n",
-                "</powershell> \n"
+                  "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                  ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                  "\n",
+                "</powershell> \n"               
               ]
             ]
           }
         },
         "Tags": [
-          {
-            "Key": "Name",
-            "Value": "EuroIRWeb1"
-          }
-        ],
+          
+            {
+              "Key": "Name",
+              "Value": "EuroIRWeb1"
+            }
+         ],
         "KeyName": { "Ref": "KeyName" }
       }
     },
     "EuroIRWeb2": {
       "Type": "AWS::EC2::Instance",
-      "Metadata": {
-        "AWS::CloudFormation::Init": {
-          "configSets": {
-            "Init": [
-              "cfnConfig",
-              "finalize"
-            ],
-            "Update": [
-              "cfnConfig",
-              "finalize"
-            ]
-          },
-          "cfnConfig": {
-            "files": {
-              "c:\\cfn\\cfn-hup.conf": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "[main]\n",
-                      "stack=",
-                      { "Ref": "AWS::StackId" },
-                      "\n",
-                      "region=",
-                      { "Ref": "AWS::Region" },
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "c:\\cfn\\hooks.d\\initialize-drive-d.txt": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "REM DISKPART script to mount drive D:\n",
-                      "list disk\n",
-                      "select disk 1\n",
-                      "clean\n",
-                      "create partition primary\n",
-                      "select partition 1\n",
-                      "active\n",
-                      "format fs=ntfs quick\n",
-                      "assign letter=d\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "services": {
-              "windows": {
-                "cfn-hup": {
-                  "enabled": "true",
-                  "ensureRunning": "true",
-                  "files": [ "c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\initialize-drive-d.txt" ]
-                }
-              }
-            }
-          },
-          "finalize": {
-            "commands": {
-              "initialize-drive-d": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "diskpart.exe -s ",
-                      "c:\\cfn\\hooks.d\\initialize-drive-d.txt "
-                    ]
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
@@ -396,16 +239,9 @@
               "",
               [
                 "<powershell>\n",
-                "cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource EuroIRWeb2", " --region ", { "Ref": "AWS::Region" },
-                "\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" },"\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
-                "Rename-Computer -NewName EuroIRWeb2 -Force",
-                "\n",
-                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ", { "Ref": "SSMDocument" }, " -Region ", { "Ref": "AWS::Region" },
-                "\n",
-                "</powershell> \n"
+                  "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                  ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                "</powershell> \n"               
               ]
             ]
           }
@@ -710,45 +546,45 @@
           ]
         ]
       }
-    } 
+    }
   },
   "Metadata": {
-      "AWS::CloudFormation::Interface": {
-        "ParameterGroups": [
-          {
-            "Label": { "default": "EC2 Instance Configuration" },
-            "Parameters": [
-              "InstanceType",
-              "APPGroupName",
-              "AppSubnet",
-              "KeyName",
-              "RDPSecurityGroup",
-              "VPCID"
-            ]
-          },
-          {
-            "Label": { "default": "Load Balancer Configuration" },
-            "Parameters": [
-              "ELBType",
-              "ELBSubnet"
-            ]
-          },
-          {
-            "Label": { "default": "Active Directory Configuration" },
-            "Parameters": [
-              "ADDomain",
-              "ADDirectory",
-              "ADDNS"
-            ]
-          },
-          {
-            "Label": { "default": "Octopus Deploy Configuration" },
-            "Parameters": [
-              "OctopusEnvironment",
-              "BootstrapScriptLocation"
-            ]
-          }
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+      {
+        "Label": { "default": "EC2 Instance Configuration" },
+        "Parameters": [
+          "InstanceType",
+          "APPGroupName",
+          "AppSubnet",
+          "KeyName",
+          "RDPSecurityGroup",
+          "VPCID"
         ]
-      }
-    }
-  }
+      },
+      {
+        "Label": { "default": "Load Balancer Configuration" },
+        "Parameters": [
+          "ELBType",
+          "ELBSubnet"
+        ]
+       },
+       {
+        "Label": { "default": "Active Directory Configuration" },
+        "Parameters": [
+          "ADDomain",
+          "ADDirectory",
+          "ADDNS"
+        ]
+       },
+       {
+        "Label": { "default": "Octopus Deploy Configuration" },
+        "Parameters": [
+          "OctopusEnvironment",
+          "BootstrapScriptLocation"
+         ]
+       }
+    ]
+   }
+ }
+}
