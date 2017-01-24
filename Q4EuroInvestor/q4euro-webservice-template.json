@@ -162,16 +162,13 @@
             ]
           }
         },
-        "Tags":
-          [
+        "Tags":[
             {
               "Key": "Name",
               "Value": "EuroWebService1"
             }
           ],
-          "KeyName"
-          :
-          { "Ref": "KeyName" }
+        "KeyName": { "Ref": "KeyName" }
       }
     },
     "EuroWebService2": {

@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Creates DB Instance running Windows Server 2012 R2 and Sql 2014 Standard Edition",
+  "Description": "**WARNING** This template creates one or more Amazon EC2 instances.  You will be billed for the AWS resources used if you create a stack from this template.",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -14,9 +14,6 @@
         "m3.large",
         "m3.xlarge",
         "m3.2xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "m4.2xlarge",
         "c3.large",
         "c3.xlarge",
         "c3.2xlarge",
@@ -40,28 +37,41 @@
       "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
       "Description": "Select instance type"
     },
-    "SSHKeyPair": {
+    "VPCID": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Select Virtual Private Cloud ID"
+    },
+    "AppSubnet": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets for Application"
+    },
+    "InstancesPublicIP": {
+      "Type": "String",
+      "Default": "False",
+      "AllowedValues": [
+        "False",
+        "True"
+      ],
+      "Description": "Specifies whether to launch instances with public IP addresses in your VPC"
+    },
+    "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
       "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
     },
-    "AppSubnets": {
-      "Description": "App Subnet IDs",
-      "Type": "List<AWS::EC2::Subnet::Id>"
+    "RDPLocation": {
+      "Description": "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "AppGroupName": {
-      "Description": "Name",
+      "Description": "EC2 Server Instance Name",
       "Type": "String",
-      "Default": "DB"
-    },
-    "VPC": {
-      "Description": "VPC",
-      "Type": "AWS::EC2::VPC::Id"
-    },
-    "PrivateIpAddress": {
-      "Description": "Private IP Address",
-      "Type": "String",
-      "Default": "172.16.40.100"
+      "ConstraintDescription": "Must follow normal syntax conventions"
     },
     "ADDomain": {
       "Description": "AD Domain Name for use with AWS",
@@ -76,31 +86,31 @@
     "ADDNS": {
       "Description": "Directory Services DNS IPs.",
       "Type": "CommaDelimitedList"
-    },
-    "RDPSecurityGroup": {
-      "Description": "The Security Group for RDP Gateway-based access.",
-      "Type": "AWS::EC2::SecurityGroup::Id"
-    },
-    "OctopusEnvironment": {
-        "Description": "The Octopus environment that this instance will be registered in.",
-        "Type":"String"
-    },
-    "BootstrapScriptLocation": {
-        "Description": "The S3 bucket name where Bootstrap.ps1 is located",
-        "Type": "String"
     }
   },
   "Mappings": {
-    "AWSRegionWinAMI": { "eu-west-1": { "64": "ami-5fc09d2c" } }
+    "AWSRegionWinAMI": {
+      "eu-west-1": {
+        "64": "ami-dd9eb6ae"
+      }
+    }
   },
   "Resources": {
-    "EuroSrv14": {
+    "RDPGW": {
       "Type": "AWS::EC2::Instance",
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "Init": [ "cfnConfig" ],
-            "Update": [ "cfnConfig" ]
+            "Init": [
+              "cfnConfig",
+              "ServerInitCommands",
+              "finalize"
+            ],
+            "Update": [
+              "cfnConfig",
+              "ServerInitCommands",
+              "finalize"
+            ]
           },
           "cfnConfig": {
             "files": {
@@ -110,8 +120,16 @@
                     "",
                     [
                       "[main]\n",
-                      "stack=", { "Ref": "AWS::StackName" }, "\n",
-                      "region=", { "Ref": "AWS::Region" }, "\n",
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
                       "interval=10\n"
                     ]
                   ]
@@ -124,7 +142,16 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "action=cfn-init.exe --configsets Update --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
+                      "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                      "action=cfn-init.exe --configsets Update --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource DB01 ",
+                      " --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
                       "\n"
                     ]
                   ]
@@ -143,54 +170,108 @@
                 }
               }
             }
+          },
+          "finalize": {
+            "commands": {
+              "1-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cfn-signal.exe -e 0 --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource DB01 --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "waitAfterCompletion": "0"
+              }
+            }
           }
+        },
+        "AWS::CloudFormation::Designer": {
+          "id": "e4a55ff0-0e75-4102-b791-54feeecfeb2e"
         }
       },
       "Properties": {
-        "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
-        "InstanceType": { "Ref": "InstanceType" },
-        "NetworkInterfaces": [
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
             {
-                "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
-                "DeviceIndex" : "0"
-            }
-        ],           
-        "BlockDeviceMappings" : [
-           {
-              "DeviceName" : "/dev/sda1",
-              "Ebs" : { "VolumeSize" : "100" }
-           },
-           {
-              "DeviceName" : "/dev/sdm",
-              "Ebs" : { 
-                  "VolumeType":"io1",
-                  "Iops":"1000",
-                  "VolumeSize" : "2048" 
-              }
-           }
-        ],
-        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+              "Ref": "AWS::Region"
+            },
+            "64"
+          ]
+        },
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": {"Ref": "InstancesPublicIP"},
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref" : "InstanceSecurityGroup" }],
+          "SubnetId": { 
+              "Fn::Select": [
+                "0",
+                {
+                  "Ref": "AppSubnet"
+                }
+              ]          
+          }
+        } ],
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
         "Tags":[
             {
               "Key": "Name",
-              "Value": "EuroSrv14"
+              "Value": "RDPGW"
             }
           ],
-        "KeyName": { "Ref": "SSHKeyPair" },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
         "SsmAssociations": [
-          { "DocumentName": { "Ref": "SSMDocument" } }
-        ],          
+          {
+            "DocumentName": {
+              "Ref": "SSMDocument"
+            }
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
-                " cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
-                " \n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
-                "Rename-Computer -NewName EuroSrv14 -Force",
+                "Rename-Computer -NewName RDPGW -Force",
+                "\n",
+                "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
+                "New-SSMAssociation -InstanceId $instanceid -Name ",
+                {
+                  "Ref": "SSMDocument"
+                },
+                " -Region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "cfn-init.exe -v --configsets Init ",
+                "--stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource LaunchConfig ",
+                "--region ",
+                {
+                  "Ref": "AWS::Region"
+                },
                 "\n",
                 "</powershell> \n"
               ]
@@ -199,45 +280,28 @@
         }
       }
     },
-    "DBSecurityGroup": {
+    "InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Enable access to Domain Controller",
-        "VpcId": { "Ref": "VPC" },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
-          }
-        ],
+        "GroupDescription": "Enable SSH access and HTTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
             "FromPort": "3389",
             "ToPort": "3389",
-            "SourceSecurityGroupId": {
-              "Ref": "RDPSecurityGroup"
+            "CidrIp": {
+              "Ref": "RDPLocation"
             }
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "1433",
-            "ToPort": "1433",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "135",
-            "ToPort": "139",
-            "CidrIp": "172.16.0.0/16"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "445",
-            "ToPort": "445",
-            "CidrIp": "172.16.0.0/16"
           }
         ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "1e7120ef-9b23-485b-8bab-cade22b0a689"
+        }
       }
     },
     "SSMDocument": {
@@ -249,9 +313,15 @@
           "runtimeConfig": {
             "aws:domainJoin": {
               "properties": {
-                "directoryId": { "Ref": "ADDirectory" },
-                "directoryName": { "Ref": "ADDomain" },
-                "dnsIpAddresses": { "Ref": "ADDNS" }
+                "directoryId": {
+                  "Ref": "ADDirectory"
+                },
+                "directoryName": {
+                  "Ref": "ADDomain"
+                },
+                "dnsIpAddresses": {
+                  "Ref": "ADDNS"
+                }
               }
             }
           }
@@ -265,8 +335,14 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
             }
           ]
         },
@@ -370,33 +446,11 @@
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
-        "Roles": [ { "Ref": "InstanceRole" } ]
-      }
-    },
-    "ExternalIP01": {
-        "Type" : "AWS::EC2::EIP",
-        "Properties" : { "Domain" : {"Ref": "VPC"} }
-    },
-    "NetworkInterface01":{
-        "Type" : "AWS::EC2::NetworkInterface",
-        "Properties":{
-            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
-            "GroupSet" : [ { "Ref" : "DBSecurityGroup" } ],
-            "PrivateIpAddress" : {"Ref":"PrivateIpAddress"}
-        }
-    },
-    "AssociateExternalIP01" : {
-      "Type" : "AWS::EC2::EIPAssociation",
-      "Properties" : {
-        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP01", "AllocationId" ]},
-        "NetworkInterfaceId" : { "Ref" : "NetworkInterface01" }
-      }
-    }      
-  },
-  "Outputs": {
-    "outputDB01": {
-      "Value": {
-        "Ref": "EuroSrv14"
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
       }
     }
   },
@@ -404,33 +458,26 @@
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
-          "Label": { "default": "EC2 Instance Configuration" },
+          "Label": { "default":"EC2 Instance Configuration" },
           "Parameters": [
             "InstanceType",
-            "PrivateIpAddress",
+            "InstancesPublicIP",
             "AppGroupName",
-            "VPC",
-            "AppSubnets",
-            "SSHKeyPair",
-            "RDPSecurityGroup"
+            "VPCID",
+            "AppSubnet",
+            "KeyName",
+            "RDPLocation"
           ]
         },
         {
-          "Label": { "default": "Simple AD Configuration" },
+          "Label": { "default": "Simple AD Configuration."},
           "Parameters": [
-              "ADDomain",
-              "ADDirectory",
-              "ADDNS"
-          ]
-        },
-        {
-          "Label": { "default": "Octopus Deploy Configuration"},
-          "Parameters": [
-            "OctopusEnvironment",
-            "BootstrapScriptLocation"
+            "ADDomain",
+            "ADDirectory",
+            "ADDNS"
           ]
         }
       ]
     }
-  }    
-} 
+  }
+}

@@ -1,0 +1,38 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Creates a Route53 hosted zone",
+    "Parameters": {
+      "ZoneName": {
+        "Type":"String",
+        "Description": "The domain name that is to be used to created the Route53 hosted zone xyz.com"
+      },
+      "VPCID": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "Select the Virtual Private Cloud ID"
+      }
+    },
+    "Resources": {
+      "HostedZone": {
+        "Type": "AWS::Route53::HostedZone",
+        "Properties": {
+          "HostedZoneConfig": {
+            "Comment": {
+              "Fn::Join": [
+                "",
+                [
+                  "Hosted Zone for ",
+                  {"Ref":"ZoneName"}
+                ]
+              ]
+            }
+          },
+          "Name":{"Ref":"ZoneName"},
+          "VPCs": [{
+            "VPCId":{"Ref":"VPCID"},
+            "VPCRegion": {"Ref":"AWS::Region"}
+          }]
+        } 
+      }
+    }
+}
+
