@@ -96,56 +96,6 @@
   "Resources": {
     "EuroSrv14": {
       "Type": "AWS::EC2::Instance",
-      "Metadata": {
-        "AWS::CloudFormation::Init": {
-          "configSets": {
-            "Init": [ "cfnConfig" ],
-            "Update": [ "cfnConfig" ]
-          },
-          "cfnConfig": {
-            "files": {
-              "c:\\cfn\\cfn-hup.conf": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "[main]\n",
-                      "stack=", { "Ref": "AWS::StackName" }, "\n",
-                      "region=", { "Ref": "AWS::Region" }, "\n",
-                      "interval=10\n"
-                    ]
-                  ]
-                }
-              },
-              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "[cfn-auto-reloader-hook]\n",
-                      "triggers=post.update\n",
-                      "action=cfn-init.exe --configsets Update --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "services": {
-              "windows": {
-                "cfn-hup": {
-                  "enabled": "true",
-                  "ensureRunning": "true",
-                  "files": [
-                    "c:\\cfn\\cfn-hup.conf",
-                    "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
       "Properties": {
         "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
         "InstanceType": { "Ref": "InstanceType" },
@@ -170,6 +120,11 @@
            }
         ],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
         "Tags":[
             {
               "Key": "Name",
@@ -177,20 +132,13 @@
             }
           ],
         "KeyName": { "Ref": "SSHKeyPair" },
-        "SsmAssociations": [
-          { "DocumentName": { "Ref": "SSMDocument" } }
-        ],          
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
-                " cfn-init.exe -v --configsets Init --stack ", { "Ref": "AWS::StackName" }, " --resource DB01 --region ", { "Ref": "AWS::Region" },
-                " \n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment"}, "\" -OctopusMachineRole \"db-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
-                "Rename-Computer -NewName EuroSrv14 -Force",
+                  "Rename-Computer -NewName EuroSrv14 -Force",
                 "\n",
                 "</powershell> \n"
               ]
