@@ -145,6 +145,11 @@
           }
         ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -163,6 +168,7 @@
                 "<powershell>\n",
                   "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                   ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                  "Rename-Computer -NewName EuroIRWeb1 -Force",
                   "\n",
                 "</powershell> \n"               
               ]
@@ -223,6 +229,11 @@
           }
         ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -241,6 +252,7 @@
                 "<powershell>\n",
                   "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
                   ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"web-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                  "Rename-Computer -NewName EuroIRWeb2 -Force",
                 "</powershell> \n"               
               ]
             ]
