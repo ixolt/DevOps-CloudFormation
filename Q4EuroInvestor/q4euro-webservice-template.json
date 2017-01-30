@@ -298,6 +298,11 @@
         },
         "Listeners": [
           {
+            "LoadBalancerPort": "8983",
+            "InstancePort": "8983",
+            "Protocol": "HTTP"
+          },          
+          {
             "LoadBalancerPort": "80",
             "InstancePort": "80",
             "Protocol": "HTTP"
@@ -350,6 +355,12 @@
             "SourceSecurityGroupId": {
               "Ref": "RDPSecurityGroup"
             }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"8983",
+            "ToPort":"8983",
+            "CidrIp":"172.16.0.0/16"
           },
           {
             "IpProtocol": "tcp",
