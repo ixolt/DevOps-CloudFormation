@@ -298,6 +298,11 @@
         },
         "Listeners": [
           {
+            "LoadBalancerPort": "8983",
+            "InstancePort": "8983",
+            "Protocol": "HTTP"
+          },          
+          {
             "LoadBalancerPort": "80",
             "InstancePort": "80",
             "Protocol": "HTTP"
@@ -352,6 +357,12 @@
             }
           },
           {
+            "IpProtocol":"tcp",
+            "FromPort":"8983",
+            "ToPort":"8983",
+            "CidrIp":"172.16.0.0/16"
+          },
+          {
             "IpProtocol": "tcp",
             "FromPort": "135",
             "ToPort": "135",
@@ -392,6 +403,12 @@
           "Ref": "VPCID"
         },
         "SecurityGroupIngress": [
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"8983",
+            "ToPort":"8983",
+            "CidrIp":"172.16.0.0/16"
+          },
           {
             "IpProtocol": "tcp",
             "FromPort": "80",
