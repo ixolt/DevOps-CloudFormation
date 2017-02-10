@@ -322,24 +322,6 @@
         }
       }
     },
-    "WebServicesAliasDNSRecord" : {
-      "Type" : "AWS::Route53::RecordSet",
-      "Properties" : {
-         "HostedZoneName" : "euroinvestor.com.",
-         "Comment" : "webservices.euroinvestors.com alias pointing to the WebService ELB.",
-         "Name": "webservices.euroinvestor.com.",
-         "AliasTarget": {
-          "DNSName": {
-            "Fn::GetAtt": [
-              "ElasticLoadBalancer",
-              "DNSName"
-            ]
-          },
-          "HostedZoneId": "Z32O12XQLNTSW2"        
-         }, 
-         "Type" : "A"
-      }
-   },
     "InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {

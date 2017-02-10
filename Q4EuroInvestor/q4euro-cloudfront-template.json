@@ -1,0 +1,47 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "**WARNING** This template creates one CloudFront Distribution. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Resources": {
+    "Q4EuroIRVarnishCFDistribution" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                            "DomainName" : "q4eurotestirvarnish.q4web.com",
+                            "Id":          "q4eurotestircdn.q4web.com",
+                            "CustomOriginConfig" : {
+                                "HTTPPort" : "80",
+                                "HTTPSPort" : "443",
+                                "OriginProtocolPolicy" : "http-only"
+                            }
+                    } ],
+                    "Enabled" : "true",
+                    "DefaultRootObject" : "default.aspx",
+                    "Logging" : {
+                        "IncludeCookies" : "false",
+                        "Bucket" : "q4euroir-ir.euroinvestor.com.s3.amazonaws.com",
+                        "Prefix": "cf-logs/"
+                    },
+                    "Aliases" : [
+                        "q4eurotestircdn.q4web.com",
+                        "q4eurotestircf.q4web.com"
+                    ],
+                    "DefaultCacheBehavior" : {
+                        "TargetOriginId" : "q4eurotestircdn.q4web.com",
+                        "SmoothStreaming" : "false",  
+                        "ForwardedValues" : {
+                            "QueryString" : "true",
+                            "Cookies" : { "Forward" : "none" }
+                        },
+                      "ViewerProtocolPolicy": "allow-all",
+                      "AllowedMethods" : [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+                    },
+                   "PriceClass" : "PriceClass_All",
+                   "ViewerCertificate": { "CloudFrontDefaultCertificate" : "true" }
+                }
+            }
+        }
+  },
+  "Outputs": {
+  }
+}
