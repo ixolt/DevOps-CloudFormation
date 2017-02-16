@@ -8,7 +8,7 @@
                 "DistributionConfig" : {
                     "Origins" : [ {
                             "DomainName" : "q4eurotestir1varnish.q4web.com",
-                            "Id":          "q4eurotestir1cdn.q4web.com",
+                            "Id":          "q4eurotestir1.q4web.com",
                             "CustomOriginConfig" : {
                                 "HTTPPort" : "80",
                                 "HTTPSPort" : "443",
@@ -23,11 +23,11 @@
                         "Prefix": "cf-logs/"
                     },
                     "Aliases" : [
-                        "q4eurotestir1cdn.q4web.com",
+                        "q4eurotestir1.q4web.com",
                         "q4eurotestir1cf.q4web.com"
                     ],
                     "DefaultCacheBehavior" : {
-                        "TargetOriginId" : "q4eurotestir1cdn.q4web.com",
+                        "TargetOriginId" : "q4eurotestir1.q4web.com",
                         "SmoothStreaming" : "false",  
                         "ForwardedValues" : {
                             "QueryString" : "true",
