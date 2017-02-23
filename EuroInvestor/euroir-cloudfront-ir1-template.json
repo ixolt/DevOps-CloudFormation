@@ -1,0 +1,52 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "**WARNING** This template creates one S3 Bucket and one CloudFront Distribution. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Resources": {
+    "CloudFrontLogsBucket" : {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "ir1.euroinvestor.com"
+      }
+    },
+    "EuroIR1CFDistribution" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                            "DomainName" : "origin-ir1.euroinvestor.com",
+                            "Id":          "origin-ir1.euroinvestor.com",
+                            "CustomOriginConfig" : {
+                                "HTTPPort" : "80",
+                                "HTTPSPort" : "443",
+                                "OriginProtocolPolicy" : "http-only"
+                            }
+                    } ],
+                    "Enabled" : "true",
+                    "DefaultRootObject" : "default.aspx",
+                    "Logging" : {
+                        "IncludeCookies" : "false",
+                        "Bucket" : { "Fn::GetAtt" : [ "CloudFrontLogsBucket", "DomainName"]},
+                        "Prefix": "cf-logs/"
+                    },
+                    "DefaultCacheBehavior" : {
+                        "TargetOriginId" : "origin-ir1.euroinvestor.com",
+                        "SmoothStreaming" : "false",
+                        "ForwardedValues": {
+                        "QueryString": "true",
+                        "Cookies": { "Forward": "none" }
+                      },
+                        "MinTTL": "60",
+                        "DefaultTTL": "86400",
+                        "MaxTTL": "31536000",
+                        "ViewerProtocolPolicy": "allow-all",
+                        "AllowedMethods" : [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+                    },
+                   "PriceClass" : "PriceClass_All",
+                   "ViewerCertificate": { "CloudFrontDefaultCertificate" : "true" }
+                }
+            }
+        }
+  },
+  "Outputs": {
+  }
+}
