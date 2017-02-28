@@ -23,18 +23,21 @@
                     } ],
                     "Enabled" : "true",
                     "DefaultRootObject" : "default.aspx",
-                    "Logging" : {
-                        "IncludeCookies" : "false",
-                        "Bucket" : { "Fn::GetAtt" : [ "CloudFrontLogsBucket", "DomainName"]},
-                        "Prefix": "cf-logs/"
-                    },
+                  "Logging": {
+                    "IncludeCookies": "false",
+                    "Bucket": { "Fn::GetAtt": [ "CloudFrontLogsBucket", "DomainName" ] },
+                    "Prefix": "cf-logs/"
+                   },
+                   "Aliases" : [
+                        "ir1.euroinvestor.com"
+                    ],
                     "DefaultCacheBehavior" : {
                         "TargetOriginId" : "origin-ir1.euroinvestor.com",
                         "SmoothStreaming" : "false",
                         "ForwardedValues": {
                         "QueryString": "true",
                         "Cookies": { "Forward": "none" }
-                      },
+                     },
                         "MinTTL": "60",
                         "DefaultTTL": "86400",
                         "MaxTTL": "31536000",
