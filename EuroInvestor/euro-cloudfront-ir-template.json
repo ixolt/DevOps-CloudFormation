@@ -1,0 +1,46 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "**WARNING** This template creates one CloudFront Distribution. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Resources": {
+    "EuroIRCFDistribution" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+                "DistributionConfig" : {
+                    "Origins" : [ {
+                            "DomainName" : "irvarnish.euroinvestor.org.uk",
+                            "Id":          "irvarnish.euroinvestor.org.uk",
+                            "CustomOriginConfig" : {
+                                "HTTPPort" : "80",
+                                "HTTPSPort" : "443",
+                                "OriginProtocolPolicy" : "http-only"
+                            }
+                    } ],
+                    "Enabled" : "true",
+                    "DefaultRootObject" : "default.aspx",
+                    "Logging" : {
+                        "IncludeCookies" : "false",
+                        "Bucket" : "newir.euroinvestor.com.s3.amazonaws.com",
+                        "Prefix": "cf-logs/"
+                    },
+                    "Aliases" : [
+                        "changeatcutoverto-ir.euroinvestor.org.uk"
+                    ],
+                    "DefaultCacheBehavior" : {
+                        "TargetOriginId" : "irvarnish.euroinvestor.org.uk",
+                        "SmoothStreaming" : "false",  
+                        "ForwardedValues" : {
+                            "QueryString" : "true",
+                            "Cookies" : { "Forward" : "none" }
+                        },
+                      "ViewerProtocolPolicy": "allow-all",
+                      "AllowedMethods" : [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+                    },
+                   "PriceClass" : "PriceClass_All",
+                   "ViewerCertificate": { "CloudFrontDefaultCertificate" : "true" }
+                }
+            }
+        }
+  },
+  "Outputs": {
+  }
+}
