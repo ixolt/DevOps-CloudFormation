@@ -1,0 +1,63 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates a SimpleAD directory",
+  "Resources": {
+    "SimpleDirectory": {
+      "Type": "AWS::DirectoryService::SimpleAD",
+      "Properties": {
+        "Name": {
+          "Ref": "DirectoryName"
+        },
+        "ShortName": {
+          "Ref": "DirectoryShortName"
+        },
+        "Password": {
+          "Ref": "DirectoryAdminPassword"
+        },
+        "Size": "Small",       
+        "VpcSettings": {
+          "VpcId": {
+            "Ref": "DirectoryVPCID"
+          },
+          "SubnetIds": { "Ref" : "DirectoryVPCSubnet" }
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "DirectoryName": {
+      "Type": "String",
+      "Description": "The fully qualified name for the directory. Such as q4web-production.local"
+    },
+    "DirectoryShortName": {
+      "Type": "String",
+      "Description": "The NETBIOS name of the directory. Such as q4web-production"
+    },
+    "DirectoryAdminPassword": {
+      "Type": "String",
+      "Description": "The password for the auto generated Administrator account"
+    },
+    "DirectoryVPCID": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Select Virtual Private Cloud ID"
+    },
+    "DirectoryVPCSubnet": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets directory"
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {"default" : "Simple AD Configuration"},
+          "Parameters" : ["DirectoryName", "DirectoryShortName","DirectoryAdminPassword"]
+        },
+        {
+          "Label": {"default": "VPC Configuration"},
+          "Parameters" : ["DirectoryVPCID","DirectoryVPCSubnet"]
+        }
+      ]        
+    }      
+  }
+}
