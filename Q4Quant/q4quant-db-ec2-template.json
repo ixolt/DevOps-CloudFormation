@@ -61,7 +61,7 @@
     "AppGroupName": {
       "Description": "Name",
       "Type": "String",
-      "Default": "Prod"
+      "Default": "DB"
     },
     "VPC": {
       "Description": "VPC",
@@ -86,7 +86,7 @@
     "AWSRegionWinAMI": { "us-east-1": { "64": "ami-bd31d1ab" } }
   },
   "Resources": {
-    "PROD01": {
+    "CYCDB": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
@@ -108,7 +108,7 @@
               "DeviceName" : "/dev/sdm",
               "Ebs" : { 
                 "VolumeType": "st1",  
-                "VolumeSize" : "7168" 
+                "VolumeSize" : "500" 
               }
            }
         ],
@@ -121,11 +121,7 @@
         "Tags":[
           {
             "Key": "Name",
-            "Value": "PROD01"
-          },
-          {
-            "Key": "User",
-            "Value": "Rob"
+            "Value": "CYCDB"
           }
           ],
         "KeyName": { "Ref": "RDPKeyPair" },
@@ -135,7 +131,7 @@
               "",
               [
                 "<powershell>\n",
-                  "Rename-Computer -NewName PROD01 -Force",
+                  "Rename-Computer -NewName CYCDB -Force",
                 "\n",
                 "</powershell> \n"
               ]
@@ -144,7 +140,7 @@
         }
       }
     },
-    "AppSecurityGroup": {
+    "DBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allows Active Directory and RDP traffic",
@@ -324,7 +320,7 @@
         "Type" : "AWS::EC2::NetworkInterface",
         "Properties":{
             "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
-            "GroupSet" : [ { "Ref" : "AppSecurityGroup" } ]
+            "GroupSet" : [ { "Ref" : "DBSecurityGroup" } ]
         }
     },
     "AssociateExternalIP01" : {
@@ -336,9 +332,9 @@
     }      
   },
   "Outputs": {
-    "outputPROD01": {
+    "outputCYCDB": {
       "Value": {
-        "Ref": "PROD01"
+        "Ref": "CYCDB"
       }
     }
   },

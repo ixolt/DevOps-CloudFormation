@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Creates EC2 Instance running Windows Server 2008 R2",
+  "Description": "Creates DB Instance running Windows Server 2012 R2 and Sql 2014 Standard Edition",
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -40,16 +40,7 @@
       "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
       "Description": "Select instance type"
     },
-    "RDPLocation" : {
-      "Description" : "The IP address range that can RDP to the EC2 instance.",
-      "Type": "String",
-      "MinLength": "9",
-      "MaxLength": "18",
-      "Default": "0.0.0.0/0",
-      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
-      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
-    },
-    "RDPKeyPair": {
+    "SSHKeyPair": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
       "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
@@ -61,11 +52,16 @@
     "AppGroupName": {
       "Description": "Name",
       "Type": "String",
-      "Default": "Prod"
+      "Default": "DB"
     },
     "VPC": {
       "Description": "VPC",
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "PrivateIpAddress": {
+      "Description": "Private IP Address",
+      "Type": "String",
+      "Default": "172.16.40.100"
     },
     "ADDomain": {
       "Description": "AD Domain Name for use with AWS",
@@ -80,13 +76,25 @@
     "ADDNS": {
       "Description": "Directory Services DNS IPs.",
       "Type": "CommaDelimitedList"
+    },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "OctopusEnvironment": {
+        "Description": "The Octopus environment that this instance will be registered in.",
+        "Type":"String"
+    },
+    "BootstrapScriptLocation": {
+        "Description": "The S3 bucket name where Bootstrap.ps1 is located",
+        "Type": "String"
     }
   },
   "Mappings": {
-    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-bd31d1ab" } }
+    "AWSRegionWinAMI": { "eu-west-1": { "64": "ami-5fc09d2c" } }
   },
   "Resources": {
-    "PROD01": {
+    "EuroSrv14": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
@@ -100,15 +108,14 @@
         "BlockDeviceMappings" : [
            {
               "DeviceName" : "/dev/sda1",
-            "Ebs": {
-              "VolumeSize": "100" 
-            }
+              "Ebs" : { "VolumeSize" : "100" }
            },
            {
               "DeviceName" : "/dev/sdm",
               "Ebs" : { 
-                "VolumeType": "st1",  
-                "VolumeSize" : "7168" 
+                  "VolumeType":"io1",
+                  "Iops":"1000",
+                  "VolumeSize" : "2048" 
               }
            }
         ],
@@ -119,23 +126,19 @@
           }
         ],
         "Tags":[
-          {
-            "Key": "Name",
-            "Value": "PROD01"
-          },
-          {
-            "Key": "User",
-            "Value": "Rob"
-          }
+            {
+              "Key": "Name",
+              "Value": "EuroSrv14"
+            }
           ],
-        "KeyName": { "Ref": "RDPKeyPair" },
+        "KeyName": { "Ref": "SSHKeyPair" },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
-                  "Rename-Computer -NewName PROD01 -Force",
+                  "Rename-Computer -NewName EuroSrv14 -Force",
                 "\n",
                 "</powershell> \n"
               ]
@@ -144,10 +147,10 @@
         }
       }
     },
-    "AppSecurityGroup": {
+    "DBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Allows Active Directory and RDP traffic",
+        "GroupDescription": "Enable access to Domain Controller",
         "VpcId": { "Ref": "VPC" },
         "Tags": [
           {
@@ -160,7 +163,9 @@
             "IpProtocol": "tcp",
             "FromPort": "3389",
             "ToPort": "3389",
-            "CidrIp": { "Ref": "RDPLocation" }
+            "SourceSecurityGroupId": {
+              "Ref": "RDPSecurityGroup"
+            }
           },
           {
             "IpProtocol": "tcp",
@@ -172,13 +177,13 @@
             "IpProtocol": "tcp",
             "FromPort": "135",
             "ToPort": "139",
-            "CidrIp": "172.10.0.0/16"
+            "CidrIp": "172.16.0.0/16"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "445",
             "ToPort": "445",
-            "CidrIp": "172.10.0.0/16"
+            "CidrIp": "172.16.0.0/16"
           }
         ]
       }
@@ -324,7 +329,8 @@
         "Type" : "AWS::EC2::NetworkInterface",
         "Properties":{
             "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
-            "GroupSet" : [ { "Ref" : "AppSecurityGroup" } ]
+            "GroupSet" : [ { "Ref" : "DBSecurityGroup" } ],
+            "PrivateIpAddress" : {"Ref":"PrivateIpAddress"}
         }
     },
     "AssociateExternalIP01" : {
@@ -336,9 +342,9 @@
     }      
   },
   "Outputs": {
-    "outputPROD01": {
+    "outputDB01": {
       "Value": {
-        "Ref": "PROD01"
+        "Ref": "EuroSrv14"
       }
     }
   },
@@ -349,11 +355,11 @@
           "Label": { "default": "EC2 Instance Configuration" },
           "Parameters": [
             "InstanceType",
-            "RDPLocation",
+            "PrivateIpAddress",
             "AppGroupName",
             "VPC",
             "AppSubnets",
-            "RDPKeyPair",
+            "SSHKeyPair",
             "RDPSecurityGroup"
           ]
         },
@@ -363,6 +369,13 @@
               "ADDomain",
               "ADDirectory",
               "ADDNS"
+          ]
+        },
+        {
+          "Label": { "default": "Octopus Deploy Configuration"},
+          "Parameters": [
+            "OctopusEnvironment",
+            "BootstrapScriptLocation"
           ]
         }
       ]

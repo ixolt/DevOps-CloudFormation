@@ -83,10 +83,10 @@
     }
   },
   "Mappings": {
-    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-bd31d1ab" } }
+    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-d0ac46c6" } }
   },
   "Resources": {
-    "PROD01": {
+    "PROD02": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
@@ -103,13 +103,6 @@
             "Ebs": {
               "VolumeSize": "100" 
             }
-           },
-           {
-              "DeviceName" : "/dev/sdm",
-              "Ebs" : { 
-                "VolumeType": "st1",  
-                "VolumeSize" : "7168" 
-              }
            }
         ],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
@@ -121,11 +114,11 @@
         "Tags":[
           {
             "Key": "Name",
-            "Value": "PROD01"
+            "Value": "PROD02"
           },
           {
             "Key": "User",
-            "Value": "Rob"
+            "Value": "Chen"
           }
           ],
         "KeyName": { "Ref": "RDPKeyPair" },
@@ -135,7 +128,7 @@
               "",
               [
                 "<powershell>\n",
-                  "Rename-Computer -NewName PROD01 -Force",
+                  "Rename-Computer -NewName PROD02 -Force",
                 "\n",
                 "</powershell> \n"
               ]
@@ -160,13 +153,7 @@
             "IpProtocol": "tcp",
             "FromPort": "3389",
             "ToPort": "3389",
-            "CidrIp": { "Ref": "RDPLocation" }
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "1433",
-            "ToPort": "1433",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": { "Ref" : "RDPLocation"}
           },
           {
             "IpProtocol": "tcp",
@@ -336,9 +323,9 @@
     }      
   },
   "Outputs": {
-    "outputPROD01": {
+    "outputPROD02": {
       "Value": {
-        "Ref": "PROD01"
+        "Ref": "PROD02"
       }
     }
   },
