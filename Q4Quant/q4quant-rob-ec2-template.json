@@ -83,7 +83,7 @@
     }
   },
   "Mappings": {
-    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-bd31d1ab" } }
+    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-d0ac46c6" } }
   },
   "Resources": {
     "PROD01": {
