@@ -1,0 +1,424 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket"
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "NewsService",
+              "dev",
+              "us-east-1",
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "IamPolicyLambdaExecution": {
+      "Type": "AWS::IAM::Policy",
+      "DependsOn": [
+        "IamRoleLambdaExecution"
+      ],
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              "dev",
+              "NewsService",
+              "lambda"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ProcessNewsLogGroup",
+                          "Arn"
+                        ]
+                      },
+                      "*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EuroPushLogGroup",
+                          "Arn"
+                        ]
+                      },
+                      "*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "ServerlessDeploymentBucket"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "ServerlessDeploymentBucket"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": "arn:aws:s3:::q4-news-service-dev/*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DeleteNetworkInterface"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "IamRoleLambdaExecution"
+          }
+        ]
+      }
+    },
+    "ProcessNewsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/NewsService-dev-ProcessNews"
+      }
+    },
+    "EuroPushLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/NewsService-dev-EuroPush"
+      }
+    },
+    "ProcessNewsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/NewsService/dev/1491001289179-2017-03-31T23:01:29.179Z/NewsService.zip"
+        },
+        "FunctionName": "NewsService-dev-ProcessNews",
+        "Handler": "NewsService::NewsService.NewsProcessorFunction::ProcessNews",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "dotnetcore1.0",
+        "Timeout": 60,
+        "Environment": {
+          "Variables": {
+            "NewsService_ConnectionString": "User ID=q4user;Password=q4pass1234!;Host=q4news.caruk6uc6qp3.us-east-1.rds.amazonaws.com;Port=5432;Database=NewsService;Pooling=true;"
+          }
+        },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            "sg-e01ae787"
+          ],
+          "SubnetIds": [
+            "subnet-b28e13d7"
+          ]
+        }
+      },
+      "DependsOn": [
+        "IamPolicyLambdaExecution",
+        "IamRoleLambdaExecution"
+      ]
+    },
+    "ProcessNewsLambdaVersionVaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessNewsLambdaFunction"
+        },
+        "CodeSha256": "VaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU="
+      }
+    },
+    "EuroPushLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/NewsService/dev/1491001289179-2017-03-31T23:01:29.179Z/NewsService.zip"
+        },
+        "FunctionName": "NewsService-dev-EuroPush",
+        "Handler": "NewsService::NewsService.EuroPushFunction::ProcessNews",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "dotnetcore1.0",
+        "Timeout": 60,
+        "Environment": {
+          "Variables": {
+            "NewsService_ConnectionString": "User ID=q4user;Password=q4pass1234!;Host=q4news.caruk6uc6qp3.us-east-1.rds.amazonaws.com;Port=5432;Database=NewsService;Pooling=true;",
+            "NewsService_EuroInvestor_ConnectionString": "Data Source=34.248.126.133;Initial Catalog=EuroInvestorDB;Uid=SqlPublic;Pwd=Jn51ZR%!IzIS$vbN;MultipleActiveResultSets=True;Connection Timeout=30"
+          }
+        },
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            "sg-e01ae787"
+          ],
+          "SubnetIds": [
+            "subnet-b28e13d7"
+          ]
+        }
+      },
+      "DependsOn": [
+        "IamPolicyLambdaExecution",
+        "IamRoleLambdaExecution"
+      ]
+    },
+    "EuroPushLambdaVersionVaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "EuroPushLambdaFunction"
+        },
+        "CodeSha256": "VaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU="
+      }
+    },
+    "SNSTopicQ4newsservicenotificationsdev": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "q4newsservicenotifications-dev",
+        "DisplayName": "",
+        "Subscription": [
+          {
+            "Endpoint": {
+              "Fn::GetAtt": [
+                "ProcessNewsLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Protocol": "lambda"
+          },
+          {
+            "Endpoint": {
+              "Fn::GetAtt": [
+                "EuroPushLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Protocol": "lambda"
+          }
+        ]
+      }
+    },
+    "ProcessNewsLambdaPermissionQ4newsservicenotificationsdevSNS": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ProcessNewsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:sns:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              "q4newsservicenotifications-dev"
+            ]
+          ]
+        }
+      }
+    },
+    "EuroPushLambdaPermissionQ4newsservicenotificationsdevSNS": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EuroPushLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:sns:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              "q4newsservicenotifications-dev"
+            ]
+          ]
+        }
+      }
+    },
+    "SNSTopicPolicy": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Id": "MyTopicPolicy",
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": 1,
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": "sns:Publish",
+              "Resource": {
+                "Ref": "SNSTopicQ4newsservicenotificationsdev"
+              },
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:s3:::q4-news-service-dev"
+                }
+              }
+            }
+          ]
+        },
+        "Topics": [
+          {
+            "Ref": "SNSTopicQ4newsservicenotificationsdev"
+          }
+        ]
+      }
+    },
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "q4-news-service-dev",
+        "NotificationConfiguration": {
+          "TopicConfigurations": [
+            {
+              "Event": "s3:ObjectCreated:*",
+              "Topic": {
+                "Ref": "SNSTopicQ4newsservicenotificationsdev"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    },
+    "ProcessNewsLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ProcessNewsLambdaVersionVaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU"
+      }
+    },
+    "EuroPushLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "EuroPushLambdaVersionVaE2UId2rSSEgvWwna1fOSGoOuTlbendFdG6zdrAakU"
+      }
+    }
+  }
+}

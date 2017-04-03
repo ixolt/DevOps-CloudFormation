@@ -1,0 +1,392 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "**WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "VPCID": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Select Virtual Private Cloud ID"
+    },
+    "AppSubnets": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets for Application"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "APPGroupName": {
+      "Description": "EC2 Server Instance Name",
+      "Type": "String",
+      "ConstraintDescription": "Must follow normal syntax conventions"
+    },
+    "OctopusEnvironment": {
+      "Description": "The Octopus environment that this instance will be registered in.",
+      "Type": "String"
+    },
+    "BootstrapScriptLocation": {
+      "Description": "The S3 bucket name where Bootstrap.ps1 is located",
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+   "AWSRegionWinAMI": {
+      "us-east-1": {
+        "W2012R2": "ami-11e84107"
+      },
+      "us-east-2": {
+        "W2012R2": "ami-d85773bd"
+      },
+      "us-west-1": {
+        "W2012R2": "ami-052d7565"
+      },
+      "us-west-2": {
+        "W2012R2": "ami-09f47d69"
+      },
+      "ca-central-1": {
+        "W2012R2": "ami-d242ffb6"
+      },
+      "ap-south-1": {
+        "W2012R2": "ami-dd8cfcb2"
+      },
+      "ap-northeast-2": {
+        "W2012R2": "ami-34d4075a"
+      },
+      "ap-southeast-1": {
+        "W2012R2": "ami-e5a51786"
+      },
+      "ap-southeast-2": {
+        "W2012R2": "ami-a63934c5"
+      },
+      "ap-northeast-1": {
+        "W2012R2": "ami-cb7429ac"
+      },
+      "eu-central-1": {
+        "W2012R2": "ami-d029febf"
+      },
+      "eu-west-1": {
+        "W2012R2": "ami-d3dee9b5"
+      },
+      "eu-west-2": {
+        "W2012R2": "ami-e5b3a681"
+      },
+      "sa-east-1": {
+        "W2012R2": "ami-83f594ef"
+      }
+    }
+    },
+  "Resources": {
+    "NewsServiceFTP01": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+            {
+                "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
+                "DeviceIndex" : "0"
+            }
+        ],           
+        "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": { 
+              "VolumeType": "gp2",
+              "VolumeSize": "30" 
+            }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "30"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"pubsub-app-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
+                "\n",
+                "</powershell> \n"                
+              ]
+            ]
+          }
+        },
+        "Tags":
+          [
+            {
+              "Key": "Name",
+              "Value": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "NewsService-",
+                    { "Ref": "OctopusEnvironment" },
+                    "FTP1"
+                  ]
+                ]
+              }
+            }
+          ],
+          "KeyName"
+          :
+          { "Ref": "KeyName" }
+      }
+    },
+    "ExternalIP01": {
+        "Type" : "AWS::EC2::EIP",
+        "Properties" : { "Domain" : {"Ref": "VPCID"} }
+    },
+    "AssociateExternalIP01" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP01", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "NetworkInterface01" }
+      }
+    },      
+    "NetworkInterface01":{
+        "Type" : "AWS::EC2::NetworkInterface",
+        "Properties":{
+            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
+            "GroupSet" : [ { "Ref" : "AppSecurityGroup" } ]
+        }
+    },
+    "AppSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access and FTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "CidrIp": "0.0.0.0/0"            
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "20",
+            "ToPort": "21",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "50000",
+            "ToPort": "51000",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "APPGroupName"
+              },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:Get*",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceRoleInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+      {
+        "Label": { "default": "EC2 Instance Configuration" },
+        "Parameters": [
+          "InstanceType",
+          "APPGroupName",
+          "AppSubnets",
+          "KeyName",
+          "RDPSecurityGroup",
+          "VPCID"
+        ]
+      },
+      {
+        "Label": { "default": "Active Directory Configuration" },
+        "Parameters": [
+          "ADDomain",
+          "ADDirectory",
+          "ADDNS"
+        ]
+      },
+       {
+        "Label": { "default": "Octopus Deploy Configuration" },
+        "Parameters": [
+          "OctopusEnvironment",
+          "BootstrapScriptLocation"
+         ]
+       }
+    ]
+   }
+ }
+}
