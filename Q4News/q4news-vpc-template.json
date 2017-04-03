@@ -3,7 +3,7 @@
   "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets and 1 x Security Group.",
   "Metadata": {
     "LastUpdated": "2016-03-02",
-    "UpdatedBy": "RSabounds",
+    "UpdatedBy": "",
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
@@ -13,9 +13,7 @@
           "Parameters": [
             "Environment",
             "InstanceTenancy",
-            "EdgeType",
-            "EdgeInstanceType",
-            "SSHKeyPair"
+            "EC2KeyPair"
           ]
         }
       ]
@@ -31,32 +29,30 @@
         "dedicated"
       ],
       "ConstraintDescription": "Must be either 'default' for multi-tenant hypervisor or 'dedicated' for single tenant hypervisor."
-    }
+    },
     "Environment": {
-      "Description": "Application environment for which this network is being created. e.g. Development/Production",
+      "Description": "Application environment for which this network is being created. e.g. Dev, Prod",
       "Type": "String",
-      "Default": "Development",
+      "Default": "Dev",
       "AllowedValues": [
-        "Development",
-        "Test",
-        "Integration",
-        "PreProduction",
-        "Production"
+        "Dev",
+        "Prod",
+        "Stage"
       ]
     }
   },
   "Mappings": {
     "CIDRMapping": {
       "VPC": {
-        "CIDR": "10.1.0.0/16"
+        "CIDR": "10.10.0.0/16"
       },
       "PublicSubnet": {
-        "AZ1": "10.1.10.0/24",
-        "AZ2": "10.1.11.0/24"
+        "AZ1": "10.10.1.0/24",
+        "AZ2": "10.10.2.0/24"
       },
       "LambdaSubnet": {
-        "AZ1": "10.1.20.0/24",
-        "AZ2": "10.1.21.0/24"
+        "AZ1": "10.10.10.0/24",
+        "AZ2": "10.10.20.0/24"
       }
     }
   },
@@ -89,6 +85,12 @@
                   "VPC"
                 ]
               ]
+            }
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "Environment"
             }
           }
         ]
@@ -198,7 +200,7 @@
             "AZ1"
           ]
         },
-        "MapPublicIpOnLaunch": "True",
+        "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
             "Key": "Name",
@@ -240,7 +242,7 @@
             "AZ2"
           ]
         },
-        "MapPublicIpOnLaunch": "True",
+        "MapPublicIpOnLaunch": "False",
         "Tags": [
           {
             "Key": "Name",
