@@ -1,0 +1,139 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "PostgreSQL RDS Template ",
+
+  "Parameters" : {
+
+    "DBName": {
+      "Default": "pgdb",
+      "Description" : "The database name",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "8",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+    },
+
+    "DBUsername": {
+      "Default": "root",
+      "NoEcho": "true",
+      "Description" : "The database admin account username",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "16",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+    },
+
+    "DBPassword": {
+      "Default": "root1234",
+      "NoEcho": "true",
+      "Description" : "The database admin account password",
+      "Type": "String",
+      "MinLength": "8"
+    },
+
+    "DBClass" : {
+      "Default" : "db.t2.micro",
+      "Description" : "Database instance class",
+      "Type" : "String",
+      "AllowedValues" : [ "db.t2.micro", "db.m1.small", "db.m1.large", "db.m1.xlarge", "db.m2.xlarge","db.m4.large" ],
+      "ConstraintDescription" : "must select a valid database instance type."
+    },
+
+    "DBAllocatedStorage" : {
+      "Default": "5",
+      "Description" : "The size of the database (Gb)",
+      "Type": "Number",
+      "MinValue": "5",
+      "MaxValue": "6144",
+      "ConstraintDescription" : "must be between 5+"
+    }
+
+  },
+
+  "Mappings" : {
+    "VPC" : {
+      "single-vpc-pub-priv" : { "Id" : "vpc-ba3e6edd" }
+    },
+    "Subnets" : {
+      "private-subnet" : {
+        "PrivateSubnet2b" : "subnet-cb8fe0ac",
+        "PrivateSubnet2c" : "subnet-aab637e3"
+      },
+      "public-subnet" : {
+        "PublicSubnet2b" : "subnet-448be423",
+        "PublicSubnet2c" : "subnet-eeb938a7"
+      }
+    }
+  },
+
+  "Resources" : {
+
+    "myDBEC2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Frontend Access",
+        "VpcId"            : { "Fn::FindInMap" : [ "VPC", "single-vpc-pub-priv", "Id" ] },
+        "SecurityGroupIngress" : [{
+          "IpProtocol" : "tcp",
+          "FromPort"   : 5432,
+          "ToPort"     : 5432,
+          "CidrIp"     : "10.10.0.0/16"
+        }]
+      }
+    },
+
+    "myDBParamGroup": {
+        "Type": "AWS::RDS::DBParameterGroup",
+        "Properties": {
+            "Description": "Database Parameter Group + pg_stat_statements",
+            "Family": "postgres9.5",
+             "Parameters": {
+                "shared_preload_libraries": "pg_stat_statements"
+            }
+        }
+    },
+
+    "myDBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+         "DBSubnetGroupDescription" : "DB Private Subnet",
+         "SubnetIds" : [
+          { "Fn::FindInMap" : [ "Subnets", "private-subnet", "PrivateSubnet2b" ] },
+          { "Fn::FindInMap" : [ "Subnets", "private-subnet", "PrivateSubnet2c" ] }
+         ]
+      }
+    },
+
+    "pgDB" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBInstanceIdentifier": "newsservice-dev",
+        "DBName" : { "Ref" : "DBName" },
+        "AllocatedStorage" : { "Ref" : "DBAllocatedStorage" },
+        "DBInstanceClass" : { "Ref" : "DBClass" },
+        "Engine": "postgres",
+        "MultiAZ": "True",
+        "MasterUsername" : { "Ref" : "DBUsername" } ,
+        "MasterUserPassword" : { "Ref" : "DBPassword" },
+        "DBSubnetGroupName" : { "Ref" : "myDBSubnetGroup" },
+        "DBParameterGroupName" : {"Ref" : "myDBParamGroup" },
+        "VPCSecurityGroups" : [ { "Fn::GetAtt" : [ "myDBEC2SecurityGroup", "GroupId" ] } ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "JDBCConnectionString": {
+      "Description" : "JDBC connection string for database",
+      "Value" : { "Fn::Join": [ "", [ "jdbc:postgresql://",
+                                      { "Fn::GetAtt": [ "pgDB", "Endpoint.Address" ] },
+                                      ":",
+                                      { "Fn::GetAtt": [ "pgDB", "Endpoint.Port" ] },
+                                      "/",
+                                      { "Ref": "DBName" }]]}
+    }
+  }
+}
