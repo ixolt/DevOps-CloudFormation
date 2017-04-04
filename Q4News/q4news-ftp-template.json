@@ -125,8 +125,62 @@
           "Ref": "InstanceType"
         },
         "NetworkInterfaces": [
+          {
+            "NetworkInterfaceId": { "Ref": "NetworkInterface01" },
+            "DeviceIndex": "0"
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "30"
+            }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "30"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "NewsService",
+                  { "Ref": "OctopusEnvironment" },
+                  "FTP1"
+                ]
+              ]
+            }
+          }
+        ],
+        "KeyName": { "Ref": "KeyName" }
+      }
+    },
+    "NewsServiceFTP02": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
             {
-                "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
+                "NetworkInterfaceId" : {"Ref":"NetworkInterface02"},
                 "DeviceIndex" : "0"
             }
         ],           
@@ -147,31 +201,17 @@
             }
           }
         ],
-        "UserData": {
-          "Fn::Base64": {
-            "Fn::Join": [
-              "",
-              [
-                "<powershell>\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"pubsub-app-server\" -ServerConfigurationProject \"Configure EuroIR Servers\" \n",
-                "\n",
-                "</powershell> \n"                
-              ]
-            ]
-          }
-        },
         "Tags":
           [
             {
               "Key": "Name",
               "Value": {
                 "Fn::Join": [
-                  "",
+                  "-",
                   [
-                    "NewsService-",
+                    "NewsService",
                     { "Ref": "OctopusEnvironment" },
-                    "FTP1"
+                    "FTP2"
                   ]
                 ]
               }
@@ -183,177 +223,345 @@
       }
     },
     "ExternalIP01": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+    "ExternalIP02": {
         "Type" : "AWS::EC2::EIP",
         "Properties" : { "Domain" : {"Ref": "VPCID"} }
     },
-    "AssociateExternalIP01" : {
+    "NetworkInterface01": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "0",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "NetworkInterface02": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "1",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "AssociateExternalIP01": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP01", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface01" }
+      }
+    },
+    "AssociateExternalIP02" : {
       "Type" : "AWS::EC2::EIPAssociation",
       "Properties" : {
-        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP01", "AllocationId" ]},
-        "NetworkInterfaceId" : { "Ref" : "NetworkInterface01" }
+        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP02", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "NetworkInterface02" }
       }
-    },      
-    "NetworkInterface01":{
-        "Type" : "AWS::EC2::NetworkInterface",
-        "Properties":{
-            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
-            "GroupSet" : [ { "Ref" : "AppSecurityGroup" } ]
-        }
     },
-    "AppSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
+    "HealthCheckFTP01": {
+      "Type": "AWS::Route53::HealthCheck",
       "Properties": {
-        "GroupDescription": "Enable RDP access and FTP access on the configured port",
-        "VpcId": {
-          "Ref": "VPCID"
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP01" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
         },
-        "SecurityGroupIngress": [
+        "HealthCheckTags": [
           {
-            "IpProtocol": "tcp",
-            "FromPort": "3389",
-            "ToPort": "3389",
-            "CidrIp": "0.0.0.0/0"            
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "20",
-            "ToPort": "21",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "50000",
-            "ToPort": "51000",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
-    },
-    "InstanceRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "ec2.amazonaws.com"
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "OctopusEnvironment" },
+                  "FTP1"
                 ]
-              },
-              "Action": [
-                "sts:AssumeRole"
               ]
             }
-          ]
-        },
-        "Path": "/"
-      }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP01"
     },
-    "InstanceRolePolicies": {
-      "Type": "AWS::IAM::Policy",
+    "HealthCheckFTP02": {
+      "Type": "AWS::Route53::HealthCheck",
       "Properties": {
-        "PolicyName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "APPGroupName"
-              },
-              "Role"
-            ]
-          ]
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP02" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
         },
-        "PolicyDocument": {
-          "Statement": [
+        "HealthCheckTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "OctopusEnvironment" },
+                  "FTP2"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP02"
+    },
+    "DNSRecords": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneId": "Z1JR1GMK9XEL77",
+        "Comment": "Failover Resource Records for FTP instances.",
+        "RecordSets": [
+          {
+            "Name": {
+              "Fn::Join": [
+                ".",
+                [
+                  {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "news",
+                        { "Ref": "OctopusEnvironment" },
+                        "ftp"
+                      ]
+                    ]
+                  },
+                  "q4app.net"
+                ]
+              ]
+            },
+            "Failover": "PRIMARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP01" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "OctopusEnvironment" },
+                  "FTP-Primary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP01" }
+          },
+          {
+            "Name": {
+              "Fn::Join": [
+                ".",
+                [
+                  {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "news",
+                        { "Ref": "OctopusEnvironment" },
+                        "ftp"
+                      ]
+                    ]
+                  },
+                  "q4app.net"
+                ]
+              ]
+            },
+            "Failover": "SECONDARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP02" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "OctopusEnvironment" },
+                  "FTP-Secondary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP02" }
+          }
+        ]
+      },
+      "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
+    },
+    "AppSecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "Enable RDP access and FTP access on the configured port",
+          "VpcId": {
+            "Ref": "VPCID"
+          },
+          "SecurityGroupIngress": [
             {
-              "Effect": "Allow",
-              "Action": [
-                "cloudformation:Describe*"
-              ],
-              "Resource": "*"
+              "IpProtocol": "tcp",
+              "FromPort": "3389",
+              "ToPort": "3389",
+              "CidrIp": "0.0.0.0/0"
             },
             {
-              "Effect": "Allow",
-              "Action": [
-                "ssm:DescribeAssociation",
-                "ssm:GetDocument",
-                "ssm:ListAssociations",
-                "ssm:CreateAssociation",
-                "ssm:UpdateAssociationStatus",
-                "ssm:UpdateInstanceInformation"
-              ],
-              "Resource": "*"
+              "IpProtocol": "tcp",
+              "FromPort": "20",
+              "ToPort": "21",
+              "CidrIp": "0.0.0.0/0"
             },
             {
-              "Effect": "Allow",
-              "Action": [
-                "ec2messages:AcknowledgeMessage",
-                "ec2messages:DeleteMessage",
-                "ec2messages:FailMessage",
-                "ec2messages:GetEndpoint",
-                "ec2messages:GetMessages",
-                "ec2messages:SendReply"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "ec2:*"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "ds:CreateComputer",
-                "ds:DescribeDirectories"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:DescribeLogGroups",
-                "logs:DescribeLogStreams",
-                "logs:PutLogEvents"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "s3:PutObject",
-                "s3:Get*",
-                "s3:AbortMultipartUpload",
-                "s3:ListMultipartUploadParts",
-                "s3:ListBucketMultipartUploads"
-              ],
-              "Resource": "*"
+              "IpProtocol": "tcp",
+              "FromPort": "50000",
+              "ToPort": "51000",
+              "CidrIp": "0.0.0.0/0"
             }
           ]
-        },
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
-      }
-    },
+        }
+      },
+    "InstanceRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [
+                    "ec2.amazonaws.com"
+                  ]
+                },
+                "Action": [
+                  "sts:AssumeRole"
+                ]
+              }
+            ]
+          },
+          "Path": "/"
+        }
+      },
+    "InstanceRolePolicies": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": {
+            "Fn::Join": [
+              "-",
+              [
+                {
+                  "Ref": "APPGroupName"
+                },
+                "Role"
+              ]
+            ]
+          },
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:Describe*"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ssm:DescribeAssociation",
+                  "ssm:GetDocument",
+                  "ssm:ListAssociations",
+                  "ssm:CreateAssociation",
+                  "ssm:UpdateAssociationStatus",
+                  "ssm:UpdateInstanceInformation"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2messages:AcknowledgeMessage",
+                  "ec2messages:DeleteMessage",
+                  "ec2messages:FailMessage",
+                  "ec2messages:GetEndpoint",
+                  "ec2messages:GetMessages",
+                  "ec2messages:SendReply"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:*"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ds:CreateComputer",
+                  "ds:DescribeDirectories"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:DescribeLogGroups",
+                  "logs:DescribeLogStreams",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:PutObject",
+                  "s3:Get*",
+                  "s3:AbortMultipartUpload",
+                  "s3:ListMultipartUploadParts",
+                  "s3:ListBucketMultipartUploads"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "Roles": [
+            {
+              "Ref": "InstanceRole"
+            }
+          ]
+        }
+      },
     "InstanceRoleInstanceProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "Path": "/",
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+          "Path": "/",
+          "Roles": [
+            {
+              "Ref": "InstanceRole"
+            }
+          ]
+        }
       }
-    }
   },
   "Outputs": {
   },
