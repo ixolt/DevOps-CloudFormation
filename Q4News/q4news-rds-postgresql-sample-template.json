@@ -1,26 +1,20 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Creates 1 x PostgreSQL RDS instance with SSD storage and MultiAZ enabled.",
+  "Description" : "PostgreSQL RDS Template ",
 
   "Parameters" : {
-    "VPCID": {
-      "Type": "AWS::EC2::VPC::Id",
-      "Description": "Select Virtual Private Cloud ID"
-    },
-    "AppSubnets": {
-      "Type": "List<AWS::EC2::Subnet::Id>",
-      "Description": "Subnets for Application"
-    },
+
     "DBName": {
       "Default": "pgdb",
-      "Description": "The database name",
+      "Description" : "The database name",
       "Type": "String",
       "MinLength": "1",
-      "MaxLength": "15",
-      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
-      "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+      "MaxLength": "8",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
     },
+
     "DBUsername": {
       "Default": "root",
       "NoEcho": "true",
@@ -31,6 +25,7 @@
       "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
       "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
     },
+
     "DBPassword": {
       "Default": "root1234",
       "NoEcho": "true",
@@ -38,6 +33,7 @@
       "Type": "String",
       "MinLength": "8"
     },
+
     "DBClass" : {
       "Default" : "db.t2.micro",
       "Description" : "Database instance class",
@@ -45,6 +41,7 @@
       "AllowedValues" : [ "db.t2.micro", "db.m1.small", "db.m1.large", "db.m1.xlarge", "db.m2.xlarge","db.m4.large" ],
       "ConstraintDescription" : "must select a valid database instance type."
     },
+
     "DBAllocatedStorage" : {
       "Default": "5",
       "Description" : "The size of the database (Gb)",
@@ -53,13 +50,32 @@
       "MaxValue": "6144",
       "ConstraintDescription" : "must be between 5+"
     }
+
   },
+
+  "Mappings" : {
+    "VPC" : {
+      "single-vpc-pub-priv" : { "Id" : "vpc-ba3e6edd" }
+    },
+    "Subnets" : {
+      "private-subnet" : {
+        "PrivateSubnet2b" : "subnet-cb8fe0ac",
+        "PrivateSubnet2c" : "subnet-aab637e3"
+      },
+      "public-subnet" : {
+        "PublicSubnet2b" : "subnet-448be423",
+        "PublicSubnet2c" : "subnet-eeb938a7"
+      }
+    }
+  },
+
   "Resources" : {
+
     "myDBEC2SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties" : {
         "GroupDescription" : "Frontend Access",
-        "VpcId"            : {"Ref": "VPCID"},
+        "VpcId"            : { "Fn::FindInMap" : [ "VPC", "single-vpc-pub-priv", "Id" ] },
         "SecurityGroupIngress" : [{
           "IpProtocol" : "tcp",
           "FromPort"   : 5432,
@@ -68,6 +84,7 @@
         }]
       }
     },
+
     "myDBParamGroup": {
         "Type": "AWS::RDS::DBParameterGroup",
         "Properties": {
@@ -78,36 +95,27 @@
             }
         }
     },
+
     "myDBSubnetGroup" : {
       "Type" : "AWS::RDS::DBSubnetGroup",
       "Properties" : {
          "DBSubnetGroupDescription" : "DB Private Subnet",
-        "SubnetIds": [
-          {
-            "Fn::Select": [
-              "0",
-              { "Ref": "AppSubnets" }
-            ]
-          },
-          {  
-            "Fn::Select": [
-              "1",
-              { "Ref": "AppSubnets" }
-            ]
-           }
-          ]
+         "SubnetIds" : [
+          { "Fn::FindInMap" : [ "Subnets", "private-subnet", "PrivateSubnet2b" ] },
+          { "Fn::FindInMap" : [ "Subnets", "private-subnet", "PrivateSubnet2c" ] }
+         ]
       }
     },
+
     "pgDB" : {
       "Type" : "AWS::RDS::DBInstance",
       "Properties" : {
-        "DBInstanceIdentifier": "newservice-prod",
+        "DBInstanceIdentifier": "newsservice-dev",
         "DBName" : { "Ref" : "DBName" },
         "AllocatedStorage" : { "Ref" : "DBAllocatedStorage" },
         "DBInstanceClass" : { "Ref" : "DBClass" },
         "Engine": "postgres",
         "MultiAZ": "True",
-        "StorageType": "gp2",
         "MasterUsername" : { "Ref" : "DBUsername" } ,
         "MasterUserPassword" : { "Ref" : "DBPassword" },
         "DBSubnetGroupName" : { "Ref" : "myDBSubnetGroup" },
@@ -116,6 +124,7 @@
       }
     }
   },
+
   "Outputs" : {
     "JDBCConnectionString": {
       "Description" : "JDBC connection string for database",
