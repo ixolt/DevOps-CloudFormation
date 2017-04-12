@@ -1,0 +1,39 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1492012882885",
+      "Action": [
+        "iam:AddRoleToInstanceProfile",
+        "iam:AddUserToGroup",
+        "iam:AttachGroupPolicy",
+        "iam:AttachRolePolicy",
+        "iam:AttachUserPolicy",
+        "iam:CreateRole",
+        "iam:GetGroup",
+        "iam:GetGroupPolicy",
+        "iam:GetInstanceProfile",
+        "iam:GetLoginProfile",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:GetUser",
+        "iam:GetUserPolicy",
+        "iam:PassRole",
+        "iam:PutGroupPolicy",
+        "iam:PutRolePolicy",
+        "iam:PutUserPolicy",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:UpdateGroup",
+        "iam:UpdateLoginProfile",
+        "iam:UpdateUser"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:iam::632976446797:policy/*",
+        "arn:aws:iam::632976446797:role/*"
+      ]
+    }
+  ]
+}

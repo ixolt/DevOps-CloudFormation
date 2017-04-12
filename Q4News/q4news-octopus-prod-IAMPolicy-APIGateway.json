@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+	{
+      "Sid": "Stmt1492008610862",
+      "Action": [
+        "execute-api:Invoke",
+        "execute-api:InvalidateCache"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:execute-api:us-east-1:632976446797:prod*/*/*/*"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets and 1 x Security Group.",
+  "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets.",
   "Metadata": {
     "LastUpdated": "2016-03-02",
     "UpdatedBy": "",
@@ -461,40 +461,7 @@
         }
       }
     },
-    "SecurityGroupPrivate": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Security Group for Private",
-        "VpcId": {
-          "Ref": "VPCBase"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PrivateSecurityGroup"
-                ]
-              ]
-            }
-          }
-        ],
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
-    },
-    "S3Endpoint" : {
+     "S3Endpoint" : {
       "Type" : "AWS::EC2::VPCEndpoint",
       "Properties" : {
       "PolicyDocument" : {

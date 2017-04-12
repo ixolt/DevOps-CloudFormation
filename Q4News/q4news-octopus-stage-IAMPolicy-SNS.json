@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1492004621795",
+      "Action": [
+        "sns:AddPermission",
+        "sns:CreatePlatformApplication",
+        "sns:CreatePlatformEndpoint",
+        "sns:CreateTopic",
+        "sns:GetEndpointAttributes",
+        "sns:GetPlatformApplicationAttributes",
+        "sns:GetSMSAttributes",
+        "sns:GetSubscriptionAttributes",
+        "sns:GetTopicAttributes",
+        "sns:ListTopics",
+        "sns:Publish",
+        "sns:SetEndpointAttributes",
+        "sns:SetPlatformApplicationAttributes",
+        "sns:SetSMSAttributes",
+        "sns:SetSubscriptionAttributes",
+        "sns:SetTopicAttributes",
+        "sns:Subscribe",
+        "sns:Unsubscribe"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:sns:us-east-1:632976446797:newsservice-stage*"
+    }
+  ]
+}

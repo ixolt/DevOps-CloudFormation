@@ -1,5 +1,6 @@
 {
-   "AWSTemplateFormatVersion": "2010-09-09",
+  "AWSTemplateFormatVersion": "2010-09-09",
+   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4devops-cf-templates bucket.",
    "Parameters": {
     "InstanceTenancy": {
       "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
@@ -14,11 +15,11 @@
     "Environment": {
       "Description": "Application environment for which this network is being created. e.g. Dev, Prod",
       "Type": "String",
-      "Default": "Dev",
+      "Default": "dev",
       "AllowedValues": [
-        "Dev",
-        "Prod",
-        "Stage"
+        "dev",
+        "prod",
+        "stage"
       ]
     },
     "InstanceType": {
@@ -56,9 +57,6 @@
       "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
       "Description": "Select instance type"
     },
-    "AppSubnets": {
-      "Type": "String"
-    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -73,9 +71,8 @@
       "Type": "String"
     }
   },
-   
-    "Resources": {
-      "VPC": {
+   "Resources": {
+    "VPC": {
         "Type": "AWS::CloudFormation::Stack",
         "Properties": {
           "TemplateURL": "https://s3.amazonaws.com/q4devops-cf-templates/q4news-vpc.json",
@@ -86,16 +83,17 @@
           "TimeoutInMinutes": "60"
         }
       },
-      "FTP": {
+    "FTP": {
         "Type": "AWS::CloudFormation::Stack",
         "Properties": {
           "TemplateURL": "https://s3.amazonaws.com/q4devops-cf-templates/q4news-ftp.json",
           "Parameters": {
+            "Environment": { "Ref": "Environment" },
             "VPCID": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] },
             "InstanceType": { "Ref": "InstanceType" },
             "AppSubnets": { "Fn::Join" : [ ",",[{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ1" ] },{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ2" ] }]  ] },
             "KeyName": { "Ref": "KeyName" },
-            "APPGroupName": "FTP",
+            "APPGroupName": "ftp",
             "OctopusEnvironment": { "Ref": "OctopusEnvironment" },
             "BootstrapScriptLocation": { "Ref": "BootstrapScriptLocation" }
           },
@@ -103,6 +101,6 @@
         }
       }
    },
-   "Outputs": {
-   }
+  "Outputs": {
+  }
 }

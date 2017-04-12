@@ -2,6 +2,9 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "**WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
   "Parameters": {
+    "Environment": {
+      "Type":  "String"
+    },
     "InstanceType": {
       "Type": "String"
     },
@@ -71,6 +74,283 @@
     }
     },
   "Resources": {
+    "ExternalIP01": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+    "ExternalIP02": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+    "AppSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access and FTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "20",
+            "ToPort": "21",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "50000",
+            "ToPort": "51000",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "10933",
+            "ToPort": "10933",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "AppSecurityGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "NetworkInterface01": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "0",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "NetworkInterface02": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "1",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "AssociateExternalIP01": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP01", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface01" }
+      }
+    },
+    "AssociateExternalIP02": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP02", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface02" }
+      }
+    },
+    "HealthCheckFTP01": {
+      "Type": "AWS::Route53::HealthCheck",
+      "Properties": {
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP01" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
+        },
+        "HealthCheckTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "news",
+                  {"Ref":"Environment"},
+                  "ftp1"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP01"
+    },
+    "HealthCheckFTP02": {
+      "Type": "AWS::Route53::HealthCheck",
+      "Properties": {
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP02" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
+        },
+        "HealthCheckTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "news",
+                  { "Ref": "Environment" },
+                  "ftp2"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP02"
+    },
+    "DNSRecords": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneId": "Z1JR1GMK9XEL77",
+        "Comment": "Failover Resource Records for FTP instances.",
+        "RecordSets": [
+          {
+            "Name": {
+              "Fn::Join": [
+                ".",
+                [
+                  {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "ftp",
+                        "news",
+                        { "Ref": "Environment" }
+                      ]
+                    ]
+                  },
+                  "q4app.net"
+                ]
+              ]
+            },
+            "Failover": "PRIMARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP01" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "Environment" },
+                  "FTP-Primary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP01" }
+          },
+          {
+            "Name": {
+              "Fn::Join": [
+                ".",
+                [
+                  {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "ftp",
+                        "news",
+                        { "Ref": "Environment" }
+                      ]
+                    ]
+                  },
+                  "q4app.net"
+                ]
+              ]
+            },
+            "Failover": "SECONDARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP02" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "Environment" },
+                  "FTP-Secondary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP02" }
+          }
+        ]
+      },
+      "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
+    },
+    "DNSAlias" : {
+        "Type" : "AWS::Route53::RecordSetGroup",
+        "Properties" : {
+          "HostedZoneId" : "Z1JR1GMK9XEL77",
+          "Comment" : "DNS Alias for FTP endpoint.",
+          "RecordSets" : [
+            {
+              "Name" : {
+			       "Fn::Join": [
+                "-",
+                [
+                  "news",
+                  { "Ref": "Environment" }
+                ]
+              ]
+			},
+              "Type" : "A",
+              "AliasTarget" : {
+                  "HostedZoneId": "Z1JR1GMK9XEL77" ,
+                  "DNSName" : { 
+					"Fn::Join": [
+						".",
+						[{
+						"Fn::Join": [
+							"-",
+							[
+							"ftp",
+							"news",
+							{ "Ref": "Environment" }
+							]
+						]
+						},
+						"q4app.net"
+						]
+					]
+					}
+			}
+          ]
+        }
+	} 
     "NewsServiceFTP01": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -107,7 +387,7 @@
                 "-",
                 [
                   "newsservice",
-                  "prod",
+                  {"Ref":"Environment"},
                   "ftp1"
                 ]
               ]
@@ -169,7 +449,7 @@
                   "-",
                   [
                     "newsservice",
-                    "prod",
+                    {"Ref":"Environment"},
                     "ftp2"
                   ]
                 ]
@@ -194,225 +474,6 @@
         "KeyName":{ "Ref": "KeyName" }
       }
     },
-    "ExternalIP01": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": { "Domain": { "Ref": "VPCID" } }
-    },
-    "ExternalIP02": {
-        "Type" : "AWS::EC2::EIP",
-        "Properties" : { "Domain" : {"Ref": "VPCID"} }
-    },
-    "NetworkInterface01": {
-      "Type": "AWS::EC2::NetworkInterface",
-      "Properties": {
-        "SubnetId": {
-          "Fn::Select": [
-            "0",
-            { "Ref": "AppSubnets" }
-          ]
-        },
-        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
-      }
-    },
-    "NetworkInterface02": {
-      "Type": "AWS::EC2::NetworkInterface",
-      "Properties": {
-        "SubnetId": {
-          "Fn::Select": [
-            "1",
-            { "Ref": "AppSubnets" }
-          ]
-        },
-        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
-      }
-    },
-    "AssociateExternalIP01": {
-      "Type": "AWS::EC2::EIPAssociation",
-      "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "ExternalIP01", "AllocationId" ] },
-        "NetworkInterfaceId": { "Ref": "NetworkInterface01" }
-      }
-    },
-    "AssociateExternalIP02" : {
-      "Type" : "AWS::EC2::EIPAssociation",
-      "Properties" : {
-        "AllocationId" : { "Fn::GetAtt" : [ "ExternalIP02", "AllocationId" ]},
-        "NetworkInterfaceId" : { "Ref" : "NetworkInterface02" }
-      }
-    },
-    "HealthCheckFTP01": {
-      "Type": "AWS::Route53::HealthCheck",
-      "Properties": {
-        "HealthCheckConfig": {
-          "IPAddress": { "Ref": "ExternalIP01" },
-          "Port": "21",
-          "Type": "TCP",
-          "RequestInterval": "10",
-          "FailureThreshold": "3"
-        },
-        "HealthCheckTags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  "news",
-                  "prod",
-                  "ftp1"
-                ]
-              ]
-            }
-          }
-        ]
-      },
-      "DependsOn": "ExternalIP01"
-    },
-    "HealthCheckFTP02": {
-      "Type": "AWS::Route53::HealthCheck",
-      "Properties": {
-        "HealthCheckConfig": {
-          "IPAddress": { "Ref": "ExternalIP02" },
-          "Port": "21",
-          "Type": "TCP",
-          "RequestInterval": "10",
-          "FailureThreshold": "3"
-        },
-        "HealthCheckTags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  "news",
-                  "prod",
-                  "ftp2"
-                ]
-              ]
-            }
-          }
-        ]
-      },
-      "DependsOn": "ExternalIP02"
-    },
-    "DNSRecords": {
-      "Type": "AWS::Route53::RecordSetGroup",
-      "Properties": {
-        "HostedZoneId": "Z1JR1GMK9XEL77",
-        "Comment": "Failover Resource Records for FTP instances.",
-        "RecordSets": [
-          {
-            "Name": {
-              "Fn::Join": [
-                ".",
-                [
-                  {
-                    "Fn::Join": [
-                      "-",
-                      [
-                        "ftp",
-                        "news"
-                      ]
-                    ]
-                  },
-                  "q4app.net"
-                ]
-              ]
-            },
-            "Failover": "PRIMARY",
-            "Type": "A",
-            "TTL": "300",
-            "ResourceRecords": [
-              { "Ref": "ExternalIP01" }
-            ],
-            "SetIdentifier": {
-              "Fn::Join": [
-                "-",
-                [
-                  "News",
-                  "Prod",
-                  "FTP-Primary"
-                ]
-              ]
-            },
-            "HealthCheckId": { "Ref": "HealthCheckFTP01" }
-          },
-          {
-            "Name": {
-              "Fn::Join": [
-                ".",
-                [
-                  {
-                    "Fn::Join": [
-                      "-",
-                      [
-                        "ftp",
-                        "news"
-                      ]
-                    ]
-                  },
-                  "q4app.net"
-                ]
-              ]
-            },
-            "Failover": "SECONDARY",
-            "Type": "A",
-            "TTL": "300",
-            "ResourceRecords": [
-              { "Ref": "ExternalIP02" }
-            ],
-            "SetIdentifier": {
-              "Fn::Join": [
-                "-",
-                [
-                  "News",
-                  "Prod",
-                  "FTP-Secondary"
-                ]
-              ]
-            },
-            "HealthCheckId": { "Ref": "HealthCheckFTP02" }
-          }
-        ]
-      },
-      "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
-    },
-    "AppSecurityGroup": {
-        "Type": "AWS::EC2::SecurityGroup",
-        "Properties": {
-          "GroupDescription": "Enable RDP access and FTP access on the configured port",
-          "VpcId": {
-            "Ref": "VPCID"
-          },
-          "SecurityGroupIngress": [
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "3389",
-              "ToPort": "3389",
-              "CidrIp": "0.0.0.0/0"
-            },
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "20",
-              "ToPort": "21",
-              "CidrIp": "0.0.0.0/0"
-            },
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "50000",
-              "ToPort": "51000",
-              "CidrIp": "0.0.0.0/0"
-            },
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "10933",
-              "ToPort": "10933",
-              "CidrIp": "0.0.0.0/0"
-            }
-          ]
-        }
-      },
     "InstanceRole": {
         "Type": "AWS::IAM::Role",
         "Properties": {
@@ -540,37 +601,15 @@
       }
   },
   "Outputs": {
-  },
-  "Metadata": {
-    "AWS::CloudFormation::Interface": {
-      "ParameterGroups": [
-      {
-        "Label": { "default": "EC2 Instance Configuration" },
-        "Parameters": [
-          "InstanceType",
-          "APPGroupName",
-          "AppSubnets",
-          "KeyName",
-          "RDPSecurityGroup",
-          "VPCID"
-        ]
-      },
-      {
-        "Label": { "default": "Active Directory Configuration" },
-        "Parameters": [
-          "ADDomain",
-          "ADDirectory",
-          "ADDNS"
-        ]
-      },
-       {
-        "Label": { "default": "Octopus Deploy Configuration" },
-        "Parameters": [
-          "OctopusEnvironment",
-          "BootstrapScriptLocation"
-         ]
-       }
-    ]
-   }
- }
+    "outputTFP1IP": {
+      "Value": {
+        "Ref": "ExternalIP01"
+      }
+    },
+    "outputFTP2IP": {
+      "Value": {
+        "Ref": "ExternalIP02"
+      }
+    }
+  }
 }
