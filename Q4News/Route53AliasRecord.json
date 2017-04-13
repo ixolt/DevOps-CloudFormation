@@ -1,0 +1,41 @@
+"DNSAlias" : {
+  "Type": "AWS::Route53::RecordSetGroup",
+  "Properties": {
+    "HostedZoneId": "Z1JR1GMK9XEL77",
+    "Comment": "DNS Alias for FTP endpoint.",
+    "RecordSets": [
+      {
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              "news",
+              { "Ref": "Environment" }
+            ]
+          ]
+        },
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z1JR1GMK9XEL77",
+          "DNSName": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "news",
+                      { "Ref": "Environment" }
+                    ]
+                  ]
+                },
+                "q4app.net"
+              ]
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
