@@ -133,6 +133,39 @@
         ]
       }
     },
+    "RDSManagementSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access from anywhere.",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "RDSManagementSecurityGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
     "NetworkInterface01": {
       "Type": "AWS::EC2::NetworkInterface",
       "Properties": {
@@ -312,45 +345,54 @@
       "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
     },
     "DNSAlias" : {
-        "Type" : "AWS::Route53::RecordSetGroup",
-        "Properties" : {
-          "HostedZoneId" : "Z1JR1GMK9XEL77",
-          "Comment" : "DNS Alias for FTP endpoint.",
-          "RecordSets" : [
-            {
-              "Name" : {
-			       "Fn::Join": [
-                "-",
-                [
-                  "news",
-                  { "Ref": "Environment" }
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneId": "Z1JR1GMK9XEL77",
+        "Comment": "DNS Alias for FTP endpoint.",
+        "RecordSets": [
+      {
+        "Name": {
+          "Fn::Join": [
+            ".",
+            [
+              {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "news",
+                    { "Ref": "Environment" }
+                  ]
                 ]
-              ]
-			},
-              "Type" : "A",
-              "AliasTarget" : {
-                  "HostedZoneId": "Z1JR1GMK9XEL77" ,
-                  "DNSName" : { 
-					"Fn::Join": [
-						".",
-						[{
-						"Fn::Join": [
-							"-",
-							[
-							"ftp",
-							"news",
-							{ "Ref": "Environment" }
-							]
-						]
-						},
-						"q4app.net"
-						]
-					]
-					}
-			}
+              },
+              "q4app.net"
+            ]
           ]
+        },
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z1JR1GMK9XEL77",
+          "DNSName": {
+            "Fn::Join": [
+              ".",
+              [
+                {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "ftp-news",
+                      { "Ref": "Environment" }
+                    ]
+                  ]
+                },
+                "q4app.net"
+              ]
+            ]
+          }
         }
-	} 
+      }
+    ]
+      }
+     },
     "NewsServiceFTP01": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -426,17 +468,92 @@
           "Ref": "InstanceType"
         },
         "NetworkInterfaces": [
-            {
-                "NetworkInterfaceId" : {"Ref":"NetworkInterface02"},
-                "DeviceIndex" : "0"
-            }
-        ],           
+          {
+            "NetworkInterfaceId": { "Ref": "NetworkInterface02" },
+            "DeviceIndex": "0"
+          }
+        ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "80"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "newsservice",
+                  { "Ref": "Environment" },
+                  "ftp2"
+                ]
+              ]
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Read-S3Object -BucketName ",
+                { "Ref": "BootstrapScriptLocation" },
+                " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"",
+                { "Ref": "OctopusEnvironment" },
+                "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
+                "Rename-Computer -NewName News-FTP2 -Force -Restart",
+                "\n",
+                "</powershell> \n"
+              ]
+            ]
+          }
+        },
+        "KeyName": { "Ref": "KeyName" }
+      }
+    },
+    "RDSManagement": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "RDSManagementSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Fn::Select": [
+                "0",
+                { "Ref": "AppSubnets" }
+              ]
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
             "Ebs": { 
-              "VolumeSize": "80" 
+              "VolumeSize": "50" 
             }
           }
         ],
@@ -448,9 +565,8 @@
                 "Fn::Join": [
                   "-",
                   [
-                    "newsservice",
-                    {"Ref":"Environment"},
-                    "ftp2"
+                    "rds-management",
+                    {"Ref":"Environment"}
                   ]
                 ]
               }
@@ -462,9 +578,9 @@
               "",
               [
                 "<powershell>\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
-                "Rename-Computer -NewName News-FTP2 -Force -Restart",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key RDSMgmt-Bootstrap.ps1 -File RDSMgmt-Bootstrap.ps1 \n",
+                ".\\RDSMgmt-Bootstrap.ps1 \n",
+                "Rename-Computer -NewName RDSMgmt -Force -Restart",
                 "\n",
                 "</powershell> \n"                
               ]
@@ -602,11 +718,13 @@
   },
   "Outputs": {
     "outputTFP1IP": {
+      "Description" : "Public IP of primary FTP server.",
       "Value": {
         "Ref": "ExternalIP01"
       }
     },
     "outputFTP2IP": {
+      "Description" : "Public IP of secondary (backup) FTP server.",
       "Value": {
         "Ref": "ExternalIP02"
       }

@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Creates 1 x PostgreSQL RDS instance with SSD storage and MultiAZ enabled.",
+
+  "Parameters" : {
+    "Environment": {
+      "Type":  "String"
+    },
+    "VPCID": {
+      "Type": "String"
+    },
+    "AppSubnets": {
+      "Type": "CommaDelimitedList"
+    },
+    "DBName": {
+      "Type": "String"  
+    },
+    "DBUsername": {
+      "Type": "String"
+    },
+    "DBPassword": {
+      "Type": "String"
+    },
+    "DBClass" : {
+      "Type" : "String"
+    },
+    "DBAllocatedStorage" : {
+      "Type": "Number"
+    }
+  },
+  "Resources" : {
+    "myDBEC2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Frontend Access",
+        "VpcId"            : {"Ref": "VPCID"},
+        "SecurityGroupIngress" : [{
+          "IpProtocol" : "tcp",
+          "FromPort"   : 5432,
+          "ToPort"     : 5432,
+          "CidrIp"     : "10.10.0.0/16"
+        }]
+      }
+    },
+    "myDBParamGroup": {
+        "Type": "AWS::RDS::DBParameterGroup",
+        "Properties": {
+            "Description": "Database Parameter Group + pg_stat_statements",
+            "Family": "postgres9.5",
+             "Parameters": {
+                "shared_preload_libraries": "pg_stat_statements"
+            }
+        }
+    },
+    "myDBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+         "DBSubnetGroupDescription" : "DB Private Subnet",
+        "SubnetIds": [
+          {
+            "Fn::Select": [
+              "0",
+              { "Ref": "AppSubnets" }
+            ]
+          },
+          {  
+            "Fn::Select": [
+              "1",
+              { "Ref": "AppSubnets" }
+            ]
+           }
+          ]
+      }
+    },
+    "pgDB" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBInstanceIdentifier": {
+          "Fn::Join": [
+            "-",[
+              { "Ref": "DBName" },
+              { "Ref": "Environment" }
+            ]
+          ]
+          },
+        "DBName": { "Ref": "DBName" },
+        "AllocatedStorage": { "Ref": "DBAllocatedStorage" },
+        "DBInstanceClass": { "Ref": "DBClass" },
+        "Engine": "postgres",
+        "MultiAZ": "True",
+        "StorageType": "gp2",
+        "MasterUsername": { "Ref": "DBUsername" },
+        "MasterUserPassword": { "Ref": "DBPassword" },
+        "DBSubnetGroupName": { "Ref": "myDBSubnetGroup" },
+        "DBParameterGroupName": { "Ref": "myDBParamGroup" },
+        "VPCSecurityGroups": [ { "Fn::GetAtt": [ "myDBEC2SecurityGroup", "GroupId" ] } ]
+        }
+    }
+  },
+  "Outputs" : {
+    "JDBCConnectionString": {
+      "Description" : "JDBC connection string for database",
+      "Value" : { "Fn::Join": [ "", [ "jdbc:postgresql://",
+                                      { "Fn::GetAtt": [ "pgDB", "Endpoint.Address" ] },
+                                      ":",
+                                      { "Fn::GetAtt": [ "pgDB", "Endpoint.Port" ] },
+                                      "/",
+                                      { "Ref": "DBName" }]]}
+    }
+  }
+}
