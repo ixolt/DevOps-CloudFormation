@@ -22,7 +22,7 @@ New-CFNStack @CFStackParams1 `
                            @{ ParameterKey="OctopusEnvironment"; ParameterValue="Microservices Stage"}, `
                            @{ ParameterKey="BootstrapScriptLocation"; ParameterValue="q4news-bootstrap"},`
                            @{ ParameterKey="DBClass"; ParameterValue="db.m4.large"},`
-                           @{ ParameterKey="DBPassword"; ParameterValue="PleaseChangeMe!"}                           
+                           @{ ParameterKey="DBPassword"; ParameterValue="VeryByDown0$!"}                           
                          )
                            
 
