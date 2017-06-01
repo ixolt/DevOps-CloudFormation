@@ -30,47 +30,20 @@
   "Mappings": {
    "AWSRegionWinAMI": {
       "us-east-1": {
-        "W2012R2": "ami-11e84107"
+        "W2012R2": "ami-271b6d31"
       },
       "us-east-2": {
-        "W2012R2": "ami-d85773bd"
+        "W2012R2": "ami-7fc4e31a"
       },
       "us-west-1": {
-        "W2012R2": "ami-052d7565"
+        "W2012R2": "ami-59a78139"
       },
       "us-west-2": {
-        "W2012R2": "ami-09f47d69"
+        "W2012R2": "ami-3189ec51"
       },
       "ca-central-1": {
-        "W2012R2": "ami-d242ffb6"
-      },
-      "ap-south-1": {
-        "W2012R2": "ami-dd8cfcb2"
-      },
-      "ap-northeast-2": {
-        "W2012R2": "ami-34d4075a"
-      },
-      "ap-southeast-1": {
-        "W2012R2": "ami-e5a51786"
-      },
-      "ap-southeast-2": {
-        "W2012R2": "ami-a63934c5"
-      },
-      "ap-northeast-1": {
-        "W2012R2": "ami-cb7429ac"
-      },
-      "eu-central-1": {
-        "W2012R2": "ami-d029febf"
-      },
-      "eu-west-1": {
-        "W2012R2": "ami-d3dee9b5"
-      },
-      "eu-west-2": {
-        "W2012R2": "ami-e5b3a681"
-      },
-      "sa-east-1": {
-        "W2012R2": "ami-83f594ef"
-      }
+        "W2012R2": "ami-687ec20c"
+      }     
     }
     },
   "Resources": {
