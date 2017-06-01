@@ -47,7 +47,7 @@
         "Type": "AWS::RDS::DBParameterGroup",
         "Properties": {
             "Description": "Database Parameter Group + pg_stat_statements",
-            "Family": "postgres9.5",
+            "Family": "postgres9.6",
              "Parameters": {
                 "shared_preload_libraries": "pg_stat_statements"
             }
@@ -88,7 +88,7 @@
         "AllocatedStorage": { "Ref": "DBAllocatedStorage" },
         "DBInstanceClass": { "Ref": "DBClass" },
         "Engine": "postgres",
-        "MultiAZ": "True",
+        "MultiAZ": "False",
         "StorageType": "gp2",
         "MasterUsername": { "Ref": "DBUsername" },
         "MasterUserPassword": { "Ref": "DBPassword" },
