@@ -133,8 +133,8 @@
             "Fn::Join": [
               ",",
               [
-                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ1" ] },
-                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ2" ] }
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPrivateAZ1" ] },
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPrivateAZ2" ] }
               ]
             ]
           },
