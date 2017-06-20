@@ -1,5 +1,5 @@
 #!/bin/bash
 
-apt-get update
-apt-get install nginx
-apt-get install varnish
+sudo apt-get update
+sudo apt-get install -y nginx
+sudo apt-get install -y varnish
