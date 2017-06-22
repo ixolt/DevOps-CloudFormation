@@ -6,9 +6,11 @@ sudo apt-get update
 sudo apt-get -y install nginx
 
 # cert needed for nginx
-sudo mkdir /etc/nginx/ssl/
+sudo mkdir -p /etc/nginx/ssl/
 sudo curl -o /etc/nginx/ssl/barrick.crt https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/barrick.crt
 sudo curl -o /etc/nginx/ssl/barrick.key https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/barrick.key
+
+sudo mkdir -p /data/nginx/cache/
 
 # nginx config
 sudo curl -o /etc/nginx/sites-enabled/default https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-only/default
