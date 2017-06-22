@@ -9,6 +9,8 @@ sudo apt-get -y install varnish
 # nginx config
 sudo curl -o /etc/nginx/sites-enabled/default https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/default
 
+sudo service nginx restart
+
 # get varnish to listen on port 80
 sudo sed -i -- 's/:6081/:80/g' /lib/systemd/system/varnish.service
 
