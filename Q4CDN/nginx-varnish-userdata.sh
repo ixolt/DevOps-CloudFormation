@@ -7,6 +7,7 @@ sudo apt-get -y install nginx
 sudo apt-get -y install varnish
 
 # cert needed for nginx
+sudo mkdir /etc/nginx/ssl/
 sudo curl -o /etc/nginx/ssl/barrick.crt https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/barrick.crt
 sudo curl -o /etc/nginx/ssl/barrick.key https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/barrick.key
 
