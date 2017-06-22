@@ -2,19 +2,19 @@
 # line below goes into user-data
 # curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash -s --
 
-apt-get update
-apt-get -y install nginx
-apt-get -y install varnish
+sudo apt-get update
+sudo apt-get -y install nginx
+sudo apt-get -y install varnish
 
 # nginx config
-curl -o /etc/nginx/sites-enabled/default https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/default
+sudo curl -o /etc/nginx/sites-enabled/default https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/default
 
 # get varnish to listen on port 80
-sed -i -- 's/:6081/:80/g' /lib/systemd/system/varnish.service
+sudo sed -i -- 's/:6081/:80/g' /lib/systemd/system/varnish.service
 
 # default config file for varnish
-curl -o /etc/varnish/default.vcl https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/default.vcl 
+sudo curl -o /etc/varnish/default.vcl https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/default.vcl 
 
 # restart varnish
-systemctl daemon-reload
-service varnish restart
+sudo systemctl daemon-reload
+sudo service varnish restart
