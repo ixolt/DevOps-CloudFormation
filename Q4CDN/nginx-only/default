@@ -13,6 +13,9 @@
 
 # Default server configuration
 #
+
+proxy_cache_path /data/nginx/cache levels=1:2 keys_zone=my_cache:1m max_size 2g inactive=60m use_temp_path=off;
+
 server {
 	listen 443 ssl;
 	server_name q4inc.com;
@@ -20,7 +23,7 @@ server {
 	ssl_certificate_key /etc/nginx/ssl/barrick.key;	
 
 	location / {
-		proxy_pass http://127.0.0.1:80;
+		proxy_pass https://146.20.94.197:443;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 		proxy_set_header X-Forwarded-Proto https;
