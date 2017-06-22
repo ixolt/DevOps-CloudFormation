@@ -39,4 +39,10 @@ sub vcl_deliver {
     # response to the client.
     #
     # You can do accounting or modifying the final object here.
+    
+    if (obj.hits > 0) {
+        set resp.http.X-Cache = "cached";
+    } else {
+        set resp.http.x-Cache = "uncached";
+    }    
 }
