@@ -1,6 +1,6 @@
 #!/bin/bash
 # line below goes into user-data
-# curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash -s --
+# curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash
 
 sudo apt-get update
 sudo apt-get -y install nginx
