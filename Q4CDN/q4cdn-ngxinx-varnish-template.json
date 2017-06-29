@@ -80,12 +80,8 @@
         }
       },
       "Properties": {
-        "VPCZoneIdentifier": {
-          "Ref": "AppSubnet"
-        },
-        "LaunchConfigurationName": {
-          "Ref": "LaunchConfig"
-        },
+        "VPCZoneIdentifier": { "Ref": "AppSubnet" },
+        "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "1",
         "MaxSize": "10",
         "DesiredCapacity": "1",
@@ -95,11 +91,6 @@
           }
         ],
         "Tags": [
-          {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace",
-            "PropagateAtLaunch": "True"
-          },
           {
             "Key": "Name",
             "Value": {
@@ -133,10 +124,13 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash\n",
 
-                "apt-get -y install python-setuptools\n",
-                "mkdir aws-cfn-bootstrap-latest\n",
-                "curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1\n",
-                "easy_install aws-cfn-bootstrap-latest\n",                
+                "apt-get -y install python-pip\n",
+                "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+
+                "cp /usr/local/init/ubuntu/cfn-hup /etc/init.d/cfn-hup \n",
+                "chmod +x /etc/init.d/cfn-hup \n",
+                "update-rc.d cfn-hup defaults \n ",
+                "service cfn-hup start \n",
 
                 "/usr/local/bin/cfn-init -v ",
                 "         --stack ", { "Ref" : "AWS::StackName" },
@@ -146,7 +140,7 @@
 
                 "/usr/local/bin/cfn-signal -e $? ",
                 "         --stack ", { "Ref" : "AWS::StackName" },
-                "         --resource LaunchConfig ",
+                "         --resource ServerGroup ",
                 "         --region ", { "Ref" : "AWS::Region" }, "\n"                
               ]
             ]
@@ -175,7 +169,7 @@
                 "content": { "Fn::Join": [ "", [
                   "[cfn-auto-reloader-hook]\n",
                   "triggers=post.update\n",
-                  "path=Resources.ServverGroup.Metadata.AWS::CloudFormation::Init\n",
+                  "path=Resources.ServerGroup.Metadata.AWS::CloudFormation::Init\n",
                   "action=/usr/local/bin/cfn-init -v ",
                           "         --stack ", { "Ref" : "AWS::StackName" },
                           "         --resource LaunchConfig ",
