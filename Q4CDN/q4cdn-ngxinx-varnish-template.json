@@ -82,20 +82,14 @@
       "Properties": {
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
-        "MinSize": "1",
+        "MinSize": "2",
         "MaxSize": "10",
-        "DesiredCapacity": "1",
-        "LoadBalancerNames": [
-          {
-            "Ref": "ElasticLoadBalancer"
-          }
-        ],
+        "DesiredCapacity": "2",
+        "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ],
         "Tags": [
           {
             "Key": "Name",
-            "Value": {
-              "Ref": "AppGroupName"
-            },
+            "Value": { "Fn::Join": [ "", [ "Q4WEB-STAGE-", { "Ref": "AppGroupName" } ] ] },
             "PropagateAtLaunch": "True"
           }
         ]
@@ -122,6 +116,7 @@
               [
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
+
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash\n",
 
                 "apt-get -y install python-pip\n",
@@ -195,32 +190,18 @@
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": {
-          "Ref": "ServerGroup"
-        },
+        "AutoScalingGroupName": { "Ref": "ServerGroup" },
         "Cooldown": "60",
         "ScalingAdjustment": "1"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "d72760e2-555e-4024-a63c-9cc91efcab6b"
-        }
       }
     },
     "ScaleDownPolicy": {
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": {
-          "Ref": "ServerGroup"
-        },
+        "AutoScalingGroupName": { "Ref": "ServerGroup" },
         "Cooldown": "60",
         "ScalingAdjustment": "-1"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "341ee0dd-3541-479a-8625-c66b24242e04"
-        }
       }
     },
     "CPUAlarmHigh": {
@@ -241,17 +222,10 @@
         "Dimensions": [
           {
             "Name": "AutoScalingGroupName",
-            "Value": {
-              "Ref": "ServerGroup"
-            }
+            "Value": { "Ref": "ServerGroup" }
           }
         ],
         "ComparisonOperator": "GreaterThanThreshold"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "1224ef49-d406-4e7a-ae1b-df3cbf744461"
-        }
       }
     },
     "CPUAlarmLow": {
@@ -272,17 +246,10 @@
         "Dimensions": [
           {
             "Name": "AutoScalingGroupName",
-            "Value": {
-              "Ref": "ServerGroup"
-            }
+            "Value": { "Ref": "ServerGroup" }
           }
         ],
         "ComparisonOperator": "LessThanThreshold"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "dd7be010-f0a7-42cd-a76d-8813240536e0"
-        }
       }
     },   
     "ElasticLoadBalancer": {
@@ -336,6 +303,12 @@
             "FromPort": "443",
             "ToPort": "443",
             "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
           }
         ]
       }
@@ -362,6 +335,12 @@
             "FromPort": "22",
             "ToPort": "22",
             "CidrIp": "206.223.161.250/32"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",
@@ -468,11 +447,7 @@
             }
           ]
         },
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
+        "Roles": [ { "Ref": "InstanceRole" } ]
       }
     },
     "InstanceProfile": {
