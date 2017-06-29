@@ -118,14 +118,7 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash\n",
-
-                "apt-get -y install python-pip\n",
-                "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-
-                "cp /usr/local/init/ubuntu/cfn-hup /etc/init.d/cfn-hup \n",
-                "chmod +x /etc/init.d/cfn-hup \n",
-                "update-rc.d cfn-hup defaults \n ",
-                "service cfn-hup start \n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-aws-tools.sh | bash\n",
 
                 "/usr/local/bin/cfn-init -v ",
                 "         --stack ", { "Ref" : "AWS::StackName" },
