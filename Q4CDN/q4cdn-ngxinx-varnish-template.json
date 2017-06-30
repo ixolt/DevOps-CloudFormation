@@ -119,6 +119,7 @@
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-aws-tools.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-newrelic.sh | bash\n",
 
                 "/usr/local/bin/cfn-init -v ",
                 "         --stack ", { "Ref" : "AWS::StackName" },
