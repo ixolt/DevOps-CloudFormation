@@ -54,6 +54,10 @@
       "Type": "String",
       "Default": "ContentCache"
     },
+    "AppEnvironment": {
+        "Description": "What environment will this be launched in? (DEV, TEST,STAGE, PROD)",
+        "Type": "String",
+    },
     "VPC": {
       "Description": "VPC",
       "Type": "AWS::EC2::VPC::Id"
@@ -120,6 +124,8 @@
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-varnish-userdata.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-aws-tools.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-newrelic.sh | bash\n",
+
+                "hostnamectl set-hostname Q4WEB-", {"Ref": "AppEnvironment"},"-", {"Ref":"AppGroupName"}, "\n",
 
                 "/usr/local/bin/cfn-init -v ",
                 "         --stack ", { "Ref" : "AWS::StackName" },
@@ -405,7 +411,8 @@
             {
               "Effect": "Allow",
               "Action": [
-                "ec2:DescribeInstanceStatus"
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeInstances"
               ],
               "Resource": "*"
             },
@@ -462,6 +469,7 @@
           "Parameters": [
             "InstanceType",
             "AppGroupName",
+            "AppEnvironment",
             "VPC",
             "AppSubnets",
             "SSHKeyPair"
