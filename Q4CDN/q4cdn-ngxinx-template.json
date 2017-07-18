@@ -274,7 +274,7 @@
           {
             "LoadBalancerPort": "443",
             "InstancePort": "443",
-            "Protocol": "TCP"
+            "Protocol": "HTTP"
           }
         ],
         "HealthCheck": {
