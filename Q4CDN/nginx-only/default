@@ -32,7 +32,12 @@ server {
 		proxy_set_header Host $host;
 
 		add_header X-Cache-status $upstream_cache_status;
+		
 		proxy_pass https://206.223.161.250:443;
+		
+		if ($http_user_agent ~* (jorgee)) {
+			return 403;
+		}
 	}
 }
 
@@ -47,6 +52,11 @@ server {
 		proxy_set_header Host $host;
 
 		add_header X-Cache-status $upstream_cache_status;
+
 		proxy_pass http://206.223.161.250:80;
+
+		if ($http_user_agent ~* (jorgee)) {
+			return 403;
+		}
 	}
 }
