@@ -13,6 +13,7 @@ sudo curl -o /etc/nginx/ssl/barrick.key https://raw.githubusercontent.com/q4mobi
 sudo mkdir -p /data/nginx/cache/
 
 # nginx config
+sudo curl -o /etc/nginx/proxy.conf https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-only/proxy.conf
 sudo curl -o /etc/nginx/sites-enabled/default https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-only/default
 
 sudo service nginx restart
