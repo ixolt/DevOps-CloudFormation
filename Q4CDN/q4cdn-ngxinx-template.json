@@ -338,6 +338,12 @@
           },
           {
             "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "99.224.19.254/32"
+          },
+          {
+            "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
             "CidrIp": "0.0.0.0/0"
