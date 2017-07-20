@@ -59,8 +59,12 @@
       "Default": "ContentCache"
     },
     "AppEnvironment": {
-        "Description": "What environment will this be launched in? (DEV, TEST,STAGE, PROD)",
-        "Type": "String"
+      "Description": "What environment will this be launched in? (DEV, TEST,STAGE, PROD)",
+      "Type": "String"
+    },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
     },
     "VPC": {
       "Description": "VPC",
@@ -196,6 +200,7 @@
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/nginx-only/nginx-userdata-newcert.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-aws-tools.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-newrelic.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-CloudFormation/master/Q4CDN/setup-codedeploy-agent.sh | bash\n",
 
                 "hostnamectl set-hostname Q4WEB-",
                 { "Ref": "AppEnvironment" },
@@ -462,13 +467,7 @@
             "IpProtocol": "tcp",
             "FromPort": "22",
             "ToPort": "22",
-            "CidrIp": "206.223.161.250/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "22",
-            "ToPort": "22",
-            "CidrIp": "99.224.19.254/32"
+            "SourceSecurityGroupId": { "Ref": "RDPSecurityGroup" }
           },
           {
             "IpProtocol": "tcp",
