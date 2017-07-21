@@ -57,6 +57,11 @@ server {
 
 		proxy_pass http://206.223.161.250:80;
 
+		proxy_cache_key         $scheme$host$request_uri;
+		proxy_cache_revalidate  on;
+		proxy_cache_lock        on;
+
+
 		if ($http_user_agent ~* (jorgee)) {
 			return 403;
 		}
