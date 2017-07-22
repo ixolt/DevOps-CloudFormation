@@ -2,8 +2,12 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Creates CodeDeploy applications and deployment group, deploys via CodePipeline from S3 bucket",
   "Parameters": {
-    "S3Bucket": {
+    "S3BucketApp": {
       "Description": "Name of an existing S3 bucket that contains application packages",
+      "Type": "String"
+    },
+    "S3BucketCodePipeline": {
+      "Description": "Name of an existing S3 bucket that CodePipeline will put the artifacts into",
       "Type": "String"
     }
   },
@@ -264,7 +268,7 @@
         "Name": "Q4CDN-DeploySSL",
         "ArtifactStore": {
           "Type": "S3",
-          "Location": "codepipeline-us-west-2-926886533005"
+          "Location": { "Ref": "S3BucketCodePipeline" }
         },
         "RoleArn": { "Fn::GetAtt": [ "CodePipelineRole", "Arn" ] },
         "Stages": [
@@ -285,8 +289,8 @@
                   }
                 ],
                 "Configuration": {
-                  "PollForSourceChanges": "False",
-                  "S3Bucket": { "Ref": "S3Bucket" },
+                  "PollForSourceChanges": "True",
+                  "S3Bucket": { "Ref": "S3BucketApp" },
                   "S3ObjectKey": "SSL/ssl.zip"
                 },
                 "RunOrder": 1
