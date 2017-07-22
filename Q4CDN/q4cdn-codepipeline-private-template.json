@@ -23,19 +23,27 @@
         "Path": "/"
       }
     },
-    "CodeDeployRolePolicies": {
+    "CodePipelineRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "codepipeline.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "CodeDeployRolePolicy": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
         "PolicyName": "Q4CDN-CodeDeploy-Service-Role",
         "PolicyDocument": {
           "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "cloudformation:Describe*"
-              ],
-              "Resource": "*"
-            },
             {
               "Effect": "Allow",
               "Action": [
@@ -61,14 +69,44 @@
                 "autoscaling:PutNotificationConfiguration",
                 "autoscaling:PutLifecycleHook",
                 "autoscaling:DescribeScalingActivities",
-                "autoscaling:DeleteAutoScalingGroup",
+                "autoscaling:DeleteAutoScalingGroup"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
                 "ec2:DescribeInstances",
                 "ec2:DescribeInstanceStatus",
-                "ec2:TerminateInstances",
+                "ec2:TerminateInstances"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
                 "tag:GetTags",
-                "tag:GetResources",
-                "sns:Publish",
-                "cloudwatch:DescribeAlarms",
+                "tag:GetResources"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sns:Publish"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:DescribeAlarms"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
                 "elasticloadbalancing:DescribeLoadBalancers",
                 "elasticloadbalancing:DescribeInstanceHealth",
                 "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
@@ -79,6 +117,124 @@
           ]
         },
         "Roles": [ { "Ref": "CodeDeployRole" } ]
+      }
+    },
+    "CodePipelineRolePolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "Q4CDN-CodePipeline-Service-Role",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketVersioning"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject"
+              ],
+              "Resource": [
+                "arn:aws:s3:::q4stage-cdn*",
+                "arn:aws:s3:::codepipeline*",
+                "arn:aws:s3:::elasticbeanstalk*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "codecommit:CancelUploadArchive",
+                "codecommit:GetBranch",
+                "codecommit:GetCommit",
+                "codecommit:GetUploadArchiveStatus",
+                "codecommit:UploadArchive"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "codedeploy:CreateDeployment",
+                "codedeploy:GetApplicationRevision",
+                "codedeploy:GetDeployment",
+                "codedeploy:GetDeploymentConfig",
+                "codedeploy:RegisterApplicationRevision"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "elasticbeanstalk:*",
+                "ec2:*",
+                "elasticloadbalancing:*",
+                "autoscaling:*",
+                "cloudwatch:*",
+                "s3:*",
+                "sns:*",
+                "cloudformation:*",
+                "rds:*",
+                "sqs:*",
+                "ecs:*",
+                "iam:PassRole"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:InvokeFunction",
+                "lambda:ListFunctions"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "opsworks:CreateDeployment",
+                "opsworks:DescribeApps",
+                "opsworks:DescribeCommands",
+                "opsworks:DescribeDeployments",
+                "opsworks:DescribeInstances",
+                "opsworks:DescribeStacks",
+                "opsworks:UpdateApp",
+                "opsworks:UpdateStack"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:UpdateStack",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:ValidateTemplate",
+                "iam:PassRole"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "codebuild:BatchGetBuilds",
+                "codebuild:StartBuild"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "CodePipelineRole" } ]
       }
     },
     "CodeDeployApplication1": {
@@ -101,6 +257,76 @@
         ],
         "ServiceRoleArn": { "Fn::GetAtt": [ "CodeDeployRole", "Arn" ] }
       }
+    },
+    "SSLDeployPipeline": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "Name": "Q4CDN-DeploySSL",
+        "ArtifactStore": {
+          "Type": "S3",
+          "Location": "codepipeline-us-west-2-926886533005"
+        },
+        "RoleArn": { "Fn::GetAtt": [ "CodePipelineRole", "Arn" ] },
+        "Stages": [
+          {
+            "Name": "Source",
+            "Actions": [
+              {
+                "Name": "Source",
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "AWS",
+                  "Version": "1",
+                  "Provider": "S3"
+                },
+                "OutputArtifacts": [
+                  {
+                    "Name": "Packages"
+                  }
+                ],
+                "Configuration": {
+                  "PollForSourceChanges": "False",
+                  "S3Bucket": { "Ref": "S3Bucket" },
+                  "S3ObjectKey": "SSL/ssl.zip"
+                },
+                "RunOrder": 1
+              }
+            ]
+          },
+          {
+            "Name": "Staging",
+            "Actions": [
+              {
+                "Name": "Q4CDN-Nginx",
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CodeDeploy",
+                  "Version": "1"
+                },
+                "RunOrder": 1,
+                "Configuration": {
+                  "ApplicationName": { "Ref": "CodeDeployApplication1" },
+                  "DeploymentGroupName": { "Ref": "CodeDeployDeploymentGroup1" }
+                },
+                "OutputArtifacts": [],
+                "InputArtifacts": [
+                  {
+                    "Name": "Packages"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "DisableInboundStageTransitions": [
+          {
+            "StageName": "Staging",
+            "Reason": "Disabling the transition until integration tests are completed"
+          }
+        ]
+      },
+      "DependsOn": "CodeDeployApplication1"
     }
   },
   "Outputs": {
