@@ -255,7 +255,7 @@
         "Ec2TagFilters": [
           {
             "Key": "Name",
-            "Value": "Q4WEB-STAGE-ContentCache-1",
+            "Value": "Q4WEB-STAGE-ContentCache",
             "Type": "KEY_AND_VALUE"
           }
         ],
