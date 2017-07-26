@@ -455,7 +455,13 @@
             "FromPort": "80",
             "ToPort": "80",
             "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
-          }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8000",
+            "ToPort": "8000",
+            "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
+          }          
         ]
       }
     },
