@@ -72,7 +72,14 @@
     }
   },
   "Mappings": {
-    "UbubtuAMI": { "us-west-2": { "Ubuntu": "ami-835b4efa" } }
+    "UbubtuAMI": {
+      "us-east-1": { "Ubuntu": "ami-d15a75c7" },
+      "us-east-2": { "Ubuntu": "ami-8b92b4ee" },
+      "us-west-2": { "Ubuntu": "ami-835b4efa" },
+      "eu-west-1": { "Ubuntu": "ami-6d48500b" },
+      "eu-central-1": { "Ubuntu": "ami-1c45e273" },
+      "ap-southeast-2": { "Ubuntu": "ami-e94e5e8a" }
+    }
   },
   "Resources": {
     "MountTargetSecurityGroup": {
