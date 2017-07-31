@@ -208,6 +208,7 @@
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-tag-instance.sh | bash\n",
 
                 "hostnamectl set-hostname Q4WEB-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "\n",
                 "sudo apt-get install nfs-common -y\n",
@@ -536,7 +537,9 @@
               "Effect": "Allow",
               "Action": [
                 "ec2:DescribeInstanceStatus",
-                "ec2:DescribeInstances"
+                "ec2:DescribeInstances",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
               ],
               "Resource": "*"
             },
