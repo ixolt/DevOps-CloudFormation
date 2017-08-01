@@ -1,0 +1,288 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template gets invoked by the PowerShell script that deploys SSL certificates to the Nginx instances on the EFS system.",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "VPCID": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Select Virtual Private Cloud ID"
+    },
+    "AppSubnet": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnets for Application"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "AppGroupName": {
+      "Description": "EC2 Server Instance Name",
+      "Type": "String",
+      "ConstraintDescription": "Must follow normal syntax conventions"
+    },
+    "FileSystemID": {
+      "Type": "String",
+      "Description": "Enter EFS File System ID"
+    }
+  },
+  "Mappings": {
+    "UbuntuAMI": {
+      "us-east-1": { "Ubuntu": "ami-d15a75c7" },
+      "us-east-2": { "Ubuntu": "ami-8b92b4ee" },
+      "us-west-2": { "Ubuntu": "ami-835b4efa" },
+      "eu-west-1": { "Ubuntu": "ami-6d48500b" },
+      "eu-central-1": { "Ubuntu": "ami-1c45e273" },
+      "ap-southeast-2": { "Ubuntu": "ami-e94e5e8a" }
+    }
+  },
+  "Resources": {
+    "TempInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "UbuntuAMI",
+            { "Ref": "AWS::Region" },
+            "Ubuntu"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "false",
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Fn::Select": [
+                "0",
+                { "Ref": "AppSubnet" }
+              ]
+            }
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "8",
+              "VolumeType": "gp2"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash \n",
+                "apt-get update \n",
+                "sudo apt-get -y install awscli \n",
+                "sudo apt-get -y install ruby \n",
+                "cd /home/ubuntu \n",
+                "wget https://aws-codedeploy-us-west-2.s3.amazonaws.com/latest/install\n",
+                "chmod +x ./install \n",
+                "sudo ./install auto \n",
+                "sudo service codedeploy-agent start \n",
+                "sudo apt-get install nfs-common -y\n",
+                "sudo mkdir /efs \n",
+                "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ",
+                { "Ref": "FileSystemID" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com: /efs\n",
+                "sudo echo '",
+                { "Ref": "FileSystemID" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com: /efs ",
+                "nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0' >> /etc/fstab\n",
+                "\n"
+              ]
+            ]
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Q4CDNTempInstance"
+          }
+        ],
+        "KeyName": { "Ref": "KeyName" }
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable SSH access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "206.223.161.250/32"
+          }
+        ]
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              { "Ref": "AppGroupName" },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeInstances",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "InstanceRole" } ]
+      }
+    },
+    "InstanceRoleInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "EC2 Instance Configuration" },
+          "Parameters": [
+            "InstanceType",
+            "AppGroupName",
+            "AppSubnet",
+            "KeyName",
+            "VPCID"
+          ]
+        }
+      ]
+    }
+  }
+}
