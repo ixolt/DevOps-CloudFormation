@@ -255,7 +255,7 @@
         "Ec2TagFilters": [
           {
             "Key": "Name",
-            "Value": "Q4WEB-STAGE-ContentCache",
+            "Value": "Q4CDNTempInstance",
             "Type": "KEY_AND_VALUE"
           }
         ],
@@ -321,12 +321,6 @@
                 ]
               }
             ]
-          }
-        ],
-        "DisableInboundStageTransitions": [
-          {
-            "StageName": "Staging",
-            "Reason": "Disabling the transition until integration tests are completed"
           }
         ]
       },
