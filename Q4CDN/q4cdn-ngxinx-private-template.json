@@ -157,7 +157,7 @@
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "1",
         "MaxSize": "2",
-        "DesiredCapacity": "1",
+        "DesiredCapacity": "2",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ],
         "Tags": [
           {
