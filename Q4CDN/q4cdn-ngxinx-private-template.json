@@ -155,25 +155,10 @@
       "Properties": {
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
-        "MinSize": "1",
-        "MaxSize": "2",
+        "MinSize": "2",
+        "MaxSize": "4",
         "DesiredCapacity": "2",
-        "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  "Q4WEB-STAGE-",
-                  { "Ref": "AppGroupName" }
-                ]
-              ]
-            },
-            "PropagateAtLaunch": "True"
-          }
-        ]
+        "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
     "LaunchConfig": {
@@ -204,25 +189,25 @@
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
-                "hostnamectl set-hostname Q4WEB-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "\n",
-                "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
-                "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"",
-                "tag=", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" },"$instanceid\"\n",
-                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region",
-
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/nginx-userdata-newcert.sh | bash\n",
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
                 
+                "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
+                "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"\n",
+                "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
+                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
+                "hostnamectl set-hostname Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
+
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
+
                 "sudo apt-get install nfs-common -y\n",
                 "sudo mkdir /efs \n",
-                "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" },
-                ".amazonaws.com: /efs\n",
+                "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" }, ".amazonaws.com: /efs\n",
                 "sudo echo '", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" }, ".amazonaws.com: /efs ",
                 "nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0' >> /etc/fstab\n",
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets wordpress_install --region ",
-                { "Ref": "AWS::Region" }, "\n",
+
+                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets wordpress_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
               ]
             ]
