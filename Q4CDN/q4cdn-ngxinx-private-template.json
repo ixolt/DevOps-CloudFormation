@@ -204,13 +204,17 @@
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
+                "hostnamectl set-hostname Q4WEB-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "\n",
+                "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
+                "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"",
+                "tag=", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" },"$instanceid\"\n",
+                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region",
+
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/nginx-userdata-newcert.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-tag-instance.sh | bash\n",
-
-                "hostnamectl set-hostname Q4WEB-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "\n",
+                
                 "sudo apt-get install nfs-common -y\n",
                 "sudo mkdir /efs \n",
                 "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" },
