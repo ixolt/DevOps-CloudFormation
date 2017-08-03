@@ -30,6 +30,10 @@
       "Type": "String",
       "ConstraintDescription": "Must follow normal syntax conventions"
     },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
     "FileSystemID": {
       "Type": "String",
       "Description": "Enter EFS File System ID"
@@ -139,7 +143,7 @@
             "IpProtocol": "tcp",
             "FromPort": "22",
             "ToPort": "22",
-            "CidrIp": "206.223.161.250/32"
+            "SourceSecurityGroupId": { "Ref": "RDPSecurityGroup" }
           }
         ]
       }
