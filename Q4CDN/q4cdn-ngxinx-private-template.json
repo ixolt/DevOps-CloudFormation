@@ -72,7 +72,7 @@
     }
   },
   "Mappings": {
-    "UbubtuAMI": {
+    "UbuntuAMI": {
       "us-east-1": { "Ubuntu": "ami-d15a75c7" },
       "us-east-2": { "Ubuntu": "ami-8b92b4ee" },
       "us-west-2": { "Ubuntu": "ami-835b4efa" },
@@ -168,7 +168,7 @@
         "KeyName": { "Ref": "SSHKeyPair" },
         "ImageId": {
           "Fn::FindInMap": [
-            "UbubtuAMI",
+            "UbuntuAMI",
             { "Ref": "AWS::Region" },
             "Ubuntu"
           ]
