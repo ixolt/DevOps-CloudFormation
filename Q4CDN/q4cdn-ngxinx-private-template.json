@@ -140,7 +140,7 @@
       "DependsOn": [ "MountTargetAZ1" ],
       "CreationPolicy": {
         "ResourceSignal": {
-          "Timeout": "PT20M",
+          "Timeout": "PT10M",
           "Count": "1"
         }
       },
@@ -148,16 +148,16 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": "1",
           "MinInstancesInService": "1",
-          "PauseTime": "PT20M",
+          "PauseTime": "PT10M",
           "WaitOnResourceSignals": "true"
         }
       },
       "Properties": {
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
-        "MinSize": "2",
-        "MaxSize": "4",
-        "DesiredCapacity": "2",
+        "MinSize": "1",
+        "MaxSize": "2",
+        "DesiredCapacity": "1",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
@@ -351,9 +351,7 @@
           "Fn::Join": [
             "",
             [
-              "ELB-",
-              { "Ref": "AppGroupName" },
-              "-Group"
+              "ELB-", { "Ref": "AppGroupName" }, "-Group"
             ]
           ]
         },
@@ -392,25 +390,13 @@
             "IpProtocol": "tcp",
             "FromPort": "80",
             "ToPort": "80",
-            "CidrIp": "206.223.161.250/32"
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "CidrIp": "206.223.161.250/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "99.224.19.254/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443",
-            "CidrIp": "99.224.19.254/32"
+            "CidrIp": "0.0.0.0/0"
           }
         ]
       }
