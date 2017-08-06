@@ -29,6 +29,72 @@
     }
   },
   "Resources": {
+    "CodeDeployRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "codedeploy.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "CodeDeployRolePolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "Q4CDN-CodeDeploy-Service-Role",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "autoscaling:CompleteLifecycleAction",
+                "autoscaling:DeleteLifecycleHook",
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:RecordLifecycleActionHeartbeat",
+                "autoscaling:CreateAutoScalingGroup",
+                "autoscaling:UpdateAutoScalingGroup",
+                "autoscaling:EnableMetricsCollection",
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribePolicies",
+                "autoscaling:DescribeScheduledActions",
+                "autoscaling:DescribeNotificationConfigurations",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:SuspendProcesses",
+                "autoscaling:ResumeProcesses",
+                "autoscaling:AttachLoadBalancers",
+                "autoscaling:PutScalingPolicy",
+                "autoscaling:PutScheduledUpdateGroupAction",
+                "autoscaling:PutNotificationConfiguration",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:DescribeScalingActivities",
+                "autoscaling:DeleteAutoScalingGroup",
+                "ec2:DescribeInstances",
+                "ec2:DescribeInstanceStatus",
+                "ec2:TerminateInstances",
+                "tag:GetTags",
+                "tag:GetResources",
+                "sns:Publish",
+                "cloudwatch:DescribeAlarms",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeInstanceHealth",
+                "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                "elasticloadbalancing:DeregisterInstancesFromLoadBalancer"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "CodeDeployRole" } ]
+      }
+    },
     "VPCBase": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
@@ -490,38 +556,51 @@
   },
   "Outputs": {
     "outputVPCID": {
+      "Description": "Virtual Private Cloud ID",
       "Value": {
         "Ref": "VPCBase"
       }
     },
     "outputSubnetPublicAZ1": {
+      "Description": "Public Subnet in Availability Zone 1 - for Elastic Load Balancer",
       "Value": {
         "Ref": "PublicSubnetAZ1"
       }
     },
     "outputSubnetPublicAZ2": {
+      "Description": "Public Subnet in Availability Zone 2 - for Elastic Load Balancer",
       "Value": {
         "Ref": "PublicSubnetAZ2"
       }
     },
     "outputSubnetPrivateAZ1": {
+      "Description": "Private Subnet in Availability Zone 1 - for Nginx instances",
       "Value": {
         "Ref": "PrivateSubnetAZ1"
       }
     },
     "outputSubnetPrivateAZ2": {
+      "Description": "Private Subnet in Availability Zone 2 - for Nginx instances",
       "Value": {
         "Ref": "PrivateSubnetAZ2"
       }
     },
     "outputNATGatewayPublicIPAZ1": {
+      "Description": "NAT Gateway 1 Public IP - outgoing traffic for Private Subnet AZ1",
       "Value": {
         "Ref": "NATAZ1IP"
       }
     },
     "outputNATGatewayPublicIPAZ2": {
+      "Description": "NAT Gateway 2 Public IP - outgoing traffic for Private Subnet AZ2",
       "Value": {
         "Ref": "NATAZ2IP"
+      }
+    },
+    "outputCodeDeployRoleArn": {
+      "Description": "The ARN for the IAM role used by CodeDeploy",
+      "Value": {
+         "Fn::GetAtt": [ "CodeDeployRole", "Arn" ] 
       }
     }
   }
