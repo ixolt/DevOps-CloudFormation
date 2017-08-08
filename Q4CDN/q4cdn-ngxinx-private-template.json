@@ -82,73 +82,19 @@
     }
   },
   "Resources": {
-    "MountTargetSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "VpcId": { "Ref": "VPC" },
-        "GroupDescription": "Security group for mount target",
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "2049",
-            "ToPort": "2049",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
-    },
-    "FileSystem": {
-      "Type": "AWS::EFS::FileSystem",
-      "Properties": {
-        "PerformanceMode": "generalPurpose",
-        "FileSystemTags": [
-          {
-            "Key": "Name",
-            "Value": "q4cdn-efs"
-          }
-        ]
-      }
-    },
-    "MountTargetAZ1": {
-      "Type": "AWS::EFS::MountTarget",
-      "Properties": {
-        "FileSystemId": { "Ref": "FileSystem" },
-        "SubnetId": {
-          "Fn::Select": [
-            "0",
-            { "Ref": "AppSubnet" }
-          ]
-        },
-        "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
-      }
-    },
-    "MountTargetAZ2": {
-      "Type": "AWS::EFS::MountTarget",
-      "Properties": {
-        "FileSystemId": { "Ref": "FileSystem" },
-        "SubnetId": {
-          "Fn::Select": [
-            "1",
-            { "Ref": "AppSubnet" }
-          ]
-        },
-        "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
-      }
-    },
     "ServerGroup": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn": [ "MountTargetAZ1" ],
       "CreationPolicy": {
         "ResourceSignal": {
-          "Timeout": "PT10M",
+          "Timeout": "PT20M",
           "Count": "1"
         }
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": "1",
+          "MaxBatchSize": "4",
           "MinInstancesInService": "1",
-          "PauseTime": "PT10M",
+          "PauseTime": "PT5M",
           "WaitOnResourceSignals": "true"
         }
       },
@@ -156,8 +102,8 @@
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "1",
-        "MaxSize": "2",
-        "DesiredCapacity": "1",
+        "MaxSize": "4",
+        "DesiredCapacity": "2",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
@@ -201,13 +147,7 @@
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
 
-                "sudo apt-get install nfs-common -y\n",
-                "sudo mkdir /efs \n",
-                "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" }, ".amazonaws.com: /efs\n",
-                "sudo echo '", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" }, ".amazonaws.com: /efs ",
-                "nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0' >> /etc/fstab\n",
-
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets wordpress_install --region ", { "Ref": "AWS::Region" }, "\n",
+                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
               ]
             ]
@@ -218,7 +158,7 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "wordpress_install": [ "install_cfn" ]
+            "nginx_install": [ "install_cfn" ]
           },
           "install_cfn": {
             "files": {
@@ -253,7 +193,7 @@
                       "         --stack ",
                       { "Ref": "AWS::StackName" },
                       "         --resource LaunchConfig ",
-                      "         --configsets wordpress_install ",
+                      "         --configsets nginx_install ",
                       "         --region ",
                       { "Ref": "AWS::Region" },
                       "\n"
@@ -351,7 +291,9 @@
           "Fn::Join": [
             "",
             [
-              "ELB-", { "Ref": "AppGroupName" }, "-Group"
+              "ELB-",
+              { "Ref": "AppGroupName" },
+              "-Group"
             ]
           ]
         },
@@ -390,13 +332,25 @@
             "IpProtocol": "tcp",
             "FromPort": "80",
             "ToPort": "80",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "206.223.161.250/32"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "206.223.161.250/32"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "99.224.19.254/32"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "99.224.19.254/32"
           }
         ]
       }

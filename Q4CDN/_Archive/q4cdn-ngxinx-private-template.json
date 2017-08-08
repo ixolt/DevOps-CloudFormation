@@ -140,7 +140,7 @@
       "DependsOn": [ "MountTargetAZ1" ],
       "CreationPolicy": {
         "ResourceSignal": {
-          "Timeout": "PT20M",
+          "Timeout": "PT10M",
           "Count": "1"
         }
       },
@@ -148,7 +148,7 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": "1",
           "MinInstancesInService": "1",
-          "PauseTime": "PT5M",
+          "PauseTime": "PT10M",
           "WaitOnResourceSignals": "true"
         }
       },
@@ -156,8 +156,8 @@
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "1",
-        "MaxSize": "4",
-        "DesiredCapacity": "2",
+        "MaxSize": "2",
+        "DesiredCapacity": "1",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
@@ -207,7 +207,7 @@
                 "sudo echo '", { "Ref": "FileSystem" }, ".efs.", { "Ref": "AWS::Region" }, ".amazonaws.com: /efs ",
                 "nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0' >> /etc/fstab\n",
 
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
+                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets wordpress_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
               ]
             ]
@@ -218,7 +218,7 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "nginx_install": [ "install_cfn" ]
+            "wordpress_install": [ "install_cfn" ]
           },
           "install_cfn": {
             "files": {
@@ -253,7 +253,7 @@
                       "         --stack ",
                       { "Ref": "AWS::StackName" },
                       "         --resource LaunchConfig ",
-                      "         --configsets nginx_install ",
+                      "         --configsets wordpress_install ",
                       "         --region ",
                       { "Ref": "AWS::Region" },
                       "\n"
@@ -351,9 +351,7 @@
           "Fn::Join": [
             "",
             [
-              "ELB-",
-              { "Ref": "AppGroupName" },
-              "-Group"
+              "ELB-", { "Ref": "AppGroupName" }, "-Group"
             ]
           ]
         },
@@ -392,25 +390,13 @@
             "IpProtocol": "tcp",
             "FromPort": "80",
             "ToPort": "80",
-            "CidrIp": "206.223.161.250/32"
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "CidrIp": "206.223.161.250/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "99.224.19.254/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443",
-            "CidrIp": "99.224.19.254/32"
+            "CidrIp": "0.0.0.0/0"
           }
         ]
       }
