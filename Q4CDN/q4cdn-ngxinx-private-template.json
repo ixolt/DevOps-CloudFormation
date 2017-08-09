@@ -59,8 +59,20 @@
       "Default": "ContentCache"
     },
     "AppEnvironment": {
-      "Description": "What environment will this be launched in? (DEV, TEST,STAGE, PROD)",
+      "Description": "What environment will this be launched in? (dev, test, stage, prod)",
       "Type": "String"
+    },
+    "BackEnd": {
+      "Type": "String",
+      "Default": "stage",
+      "AllowedValues": [
+        "test",
+        "dev",
+        "stage",
+        "prod"
+      ],
+      "ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
+      "Description": "Select backend environment: dev, test, stage, prod"
     },
     "RDPSecurityGroup": {
       "Description": "The Security Group for RDP Gateway-based access.",
@@ -103,7 +115,7 @@
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "1",
         "MaxSize": "4",
-        "DesiredCapacity": "2",
+        "DesiredCapacity": "1",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
@@ -135,19 +147,23 @@
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/radu/bootstrap/setup-nginx.sh | bash\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/radu/nginx/backend-",{"Ref": "BackEnd"},".conf", "\n",
+                "sudo service nginx restart \n",
+
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
-                
+
                 "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
                 "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"\n",
                 "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
                 "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
+                
                 "hostnamectl set-hostname Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
 
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
+                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" },"\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
               ]
             ]
@@ -167,13 +183,8 @@
                   "Fn::Join": [
                     "",
                     [
-                      "[main]\n",
-                      "stack=",
-                      { "Ref": "AWS::StackId" },
-                      "\n",
-                      "region=",
-                      { "Ref": "AWS::Region" },
-                      "\n"
+                      "[main]\n", "stack=", { "Ref": "AWS::StackId" }, "\n",
+                      "region=", { "Ref": "AWS::Region" }, "\n"
                     ]
                   ]
                 },
@@ -191,12 +202,7 @@
                       "path=Resources.ServerGroup.Metadata.AWS::CloudFormation::Init\n",
                       "action=/usr/local/bin/cfn-init -v ",
                       "         --stack ",
-                      { "Ref": "AWS::StackName" },
-                      "         --resource LaunchConfig ",
-                      "         --configsets nginx_install ",
-                      "         --region ",
-                      { "Ref": "AWS::Region" },
-                      "\n"
+                      { "Ref": "AWS::StackName" }, "         --resource LaunchConfig ", "         --configsets nginx_install ", "         --region ", { "Ref": "AWS::Region" },                      "\n"
                     ]
                   ]
                 },
