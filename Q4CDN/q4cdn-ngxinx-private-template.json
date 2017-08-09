@@ -316,7 +316,7 @@
           {
             "LoadBalancerPort": "443",
             "InstancePort": "443",
-            "Protocol": "HTTP"
+            "Protocol": "TCP"
           }
         ],
         "HealthCheck": {
@@ -338,25 +338,13 @@
             "IpProtocol": "tcp",
             "FromPort": "80",
             "ToPort": "80",
-            "CidrIp": "206.223.161.250/32"
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "CidrIp": "206.223.161.250/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "99.224.19.254/32"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443",
-            "CidrIp": "99.224.19.254/32"
+            "CidrIp": "0.0.0.0/0"
           }
         ]
       }
@@ -522,6 +510,24 @@
     }
   },
   "Outputs": {
+    "outputAutoScalingGroup": {
+      "Description": "Nginx Autoscaling Group",
+      "Value": {
+        "Ref": "ServerGroup"
+      }
+    },
+    "outputELB": {
+      "Description": "Nginx Elastic Load Balancer",
+      "Value": {
+        "Ref": "ElasticLoadBalancer"
+      }
+    },
+    "outputELBSG": {
+      "Description": "Nginx Elastic Load Balancer Security Group",
+      "Value": {
+        "Ref": "ELBSecurityGroup"
+      }
+    }
   },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
