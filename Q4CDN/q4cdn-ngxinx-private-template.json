@@ -90,6 +90,7 @@
       "us-west-2": { "Ubuntu": "ami-835b4efa" },
       "eu-west-1": { "Ubuntu": "ami-6d48500b" },
       "eu-central-1": { "Ubuntu": "ami-1c45e273" },
+      "ca-central-1": { "Ubuntu": "ami-b3d965d7" },
       "ap-southeast-2": { "Ubuntu": "ami-e94e5e8a" }
     }
   },
@@ -147,8 +148,8 @@
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
-                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/radu/bootstrap/setup-nginx.sh | bash\n",
-                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/radu/nginx/backend-",{"Ref": "BackEnd"},".conf", "\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/nginx/backend-",{"Ref": "BackEnd"},".conf", "\n",
                 "sudo service nginx restart \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
