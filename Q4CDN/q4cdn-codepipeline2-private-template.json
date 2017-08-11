@@ -1,0 +1,329 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates CodeDeploy applications and deployment groups, deploys via CodePipeline from S3 and GitHub",
+  "Parameters": {
+    "S3BucketApp": {
+      "Description": "Name of an existing S3 bucket that contains SSL certs packages",
+      "Type": "String"
+    },
+    "S3BucketCodePipeline": {
+      "Description": "Name of an existing S3 bucket that CodePipeline will put the artifacts into",
+      "Type": "String"
+    },
+    "CodeDeployAutoScalingGroup": {
+      "Description": "Name of an existing AutoScaling Group that CodeDeploy will deploy against",
+      "Type": "String"
+    },
+    "CodeDeployRoleArn": {
+      "Description": "ARN of an existing IAM Role for CodeDeploy",
+      "Type": "String"
+    },
+    "GitHubOwner": {
+      "Description": "The owner of the GitHub repository, i.e. q4mobile",
+      "Type": "String"
+    },
+    "GitHubOAuthToken": {
+      "Description": "The OAuthToken of the GitHub user",
+      "Type": "String"
+    },
+    "GitHubRepo": {
+      "Description": "The GitHub repository",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "CodePipelineRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "codepipeline.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "CodePipelineRolePolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "Q4CDN-CodePipeline-Service-Role",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketVersioning"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "s3:PutObject"
+              ],
+              "Resource": [
+                "arn:aws:s3:::codepipeline*",
+                "arn:aws:s3:::elasticbeanstalk*"
+              ],
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "codecommit:CancelUploadArchive",
+                "codecommit:GetBranch",
+                "codecommit:GetCommit",
+                "codecommit:GetUploadArchiveStatus",
+                "codecommit:UploadArchive"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "codedeploy:CreateDeployment",
+                "codedeploy:GetApplicationRevision",
+                "codedeploy:GetDeployment",
+                "codedeploy:GetDeploymentConfig",
+                "codedeploy:RegisterApplicationRevision"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "elasticbeanstalk:*",
+                "ec2:*",
+                "elasticloadbalancing:*",
+                "autoscaling:*",
+                "cloudwatch:*",
+                "s3:*",
+                "sns:*",
+                "cloudformation:*",
+                "rds:*",
+                "sqs:*",
+                "ecs:*",
+                "iam:PassRole"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "lambda:InvokeFunction",
+                "lambda:ListFunctions"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "opsworks:CreateDeployment",
+                "opsworks:DescribeApps",
+                "opsworks:DescribeCommands",
+                "opsworks:DescribeDeployments",
+                "opsworks:DescribeInstances",
+                "opsworks:DescribeStacks",
+                "opsworks:UpdateApp",
+                "opsworks:UpdateStack"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:UpdateStack",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:ValidateTemplate",
+                "iam:PassRole"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "codebuild:BatchGetBuilds",
+                "codebuild:StartBuild"
+              ],
+              "Resource": "*",
+              "Effect": "Allow"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "CodePipelineRole" } ]
+      }
+    },
+    "CodeDeployApplication1": {
+      "Type": "AWS::CodeDeploy::Application",
+      "Properties": {
+        "ApplicationName": "Q4CDN-SSLCerts"
+      }
+    },
+    "CodeDeployApplication2": {
+      "Type": "AWS::CodeDeploy::Application",
+      "Properties": {
+        "ApplicationName": "Q4CDN-NginxConfig"
+      }
+    },
+    "CodeDeployDeploymentGroup1": {
+      "Type": "AWS::CodeDeploy::DeploymentGroup",
+      "Properties": {
+        "DeploymentGroupName": "Q4CDN-Nginx-Group1",
+        "ApplicationName": { "Ref": "CodeDeployApplication1" },
+        "AutoScalingGroups": [ { "Ref": "CodeDeployAutoScalingGroup" } ],
+        "ServiceRoleArn": { "Ref": "CodeDeployRoleArn" }
+      }
+    },
+    "CodeDeployDeploymentGroup2": {
+      "Type": "AWS::CodeDeploy::DeploymentGroup",
+      "Properties": {
+        "DeploymentGroupName": "Q4CDN-Nginx-Group2",
+        "ApplicationName": { "Ref": "CodeDeployApplication2" },
+        "AutoScalingGroups": [ { "Ref": "CodeDeployAutoScalingGroup" } ],
+        "ServiceRoleArn": { "Ref": "CodeDeployRoleArn" }
+      }
+    },
+    "DeploySSLCertsPipeline": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "Name": "Q4CDN-Deploy-SSLCerts",
+        "ArtifactStore": {
+          "Type": "S3",
+          "Location": { "Ref": "S3BucketCodePipeline" }
+        },
+        "RoleArn": { "Fn::GetAtt": [ "CodePipelineRole", "Arn" ] },
+        "Stages": [
+          {
+            "Name": "Source",
+            "Actions": [
+              {
+                "Name": "Source",
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "AWS",
+                  "Version": "1",
+                  "Provider": "S3"
+                },
+                "OutputArtifacts": [
+                  {
+                    "Name": "Packages"
+                  }
+                ],
+                "Configuration": {
+                  "PollForSourceChanges": "True",
+                  "S3Bucket": { "Ref": "S3BucketApp" },
+                  "S3ObjectKey": "SSL/ssl.zip"
+                },
+                "RunOrder": 1
+              }
+            ]
+          },
+          {
+            "Name": "Deploy-SSL-Certs",
+            "Actions": [
+              {
+                "Name": "Q4CDN-Nginx",
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CodeDeploy",
+                  "Version": "1"
+                },
+                "RunOrder": 1,
+                "Configuration": {
+                  "ApplicationName": { "Ref": "CodeDeployApplication1" },
+                  "DeploymentGroupName": { "Ref": "CodeDeployDeploymentGroup1" }
+                },
+                "OutputArtifacts": [],
+                "InputArtifacts": [
+                  {
+                    "Name": "Packages"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "DeployNginxConfigPipeline": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "Name": "Q4CDN-Deploy-NginxConfig",
+        "ArtifactStore": {
+          "Type": "S3",
+          "Location": { "Ref": "S3BucketCodePipeline" }
+        },
+        "RoleArn": { "Fn::GetAtt": [ "CodePipelineRole", "Arn" ] },
+        "Stages": [
+          {
+            "Name": "Source",
+            "Actions": [
+              {
+                "Name": "Source",
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "ThirdParty",
+                  "Version": "1",
+                  "Provider": "GitHub"
+                },
+                "OutputArtifacts": [
+                  {
+                    "Name": "NginxConfigPackages"
+                  }
+                ],
+                "InputArtifacts": [],
+                "Configuration": {
+                  "Owner": { "Ref": "GitHubOwner" },
+                  "Repo": { "Ref": "GitHubRepo" },
+                  "Branch": "radu",
+                  "OAuthToken": { "Ref": "GitHubOAuthToken" },
+                  "PollForSourceChanges": "True"
+                },
+                "RunOrder": 1
+              }
+            ]
+          },
+          {
+            "Name": "Deploy-Nginx-Config",
+            "Actions": [
+              {
+                "Name": "Q4CDN-Nginx",
+                "ActionTypeId": {
+                  "Category": "Deploy",
+                  "Owner": "AWS",
+                  "Provider": "CodeDeploy",
+                  "Version": "1"
+                },
+                "RunOrder": 1,
+                "Configuration": {
+                  "ApplicationName": { "Ref": "CodeDeployApplication2" },
+                  "DeploymentGroupName": { "Ref": "CodeDeployDeploymentGroup2" }
+                },
+                "OutputArtifacts": [],
+                "InputArtifacts": [
+                  {
+                    "Name": "NginxConfigPackages"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+  }
+} 
