@@ -9,24 +9,17 @@
     "S3BucketCodePipeline": {
       "Description": "Name of an existing S3 bucket that CodePipeline will put the artifacts into",
       "Type": "String"
+    },
+    "CodeDeployAutoScalingGroup": {
+      "Description": "Name of an existing AutoScaling Group that CodeDeploy will deploy against",
+      "Type": "String"
+    },
+    "CodeDeployRoleArn": {
+      "Description": "ARN of an existing IAM Role for CodeDeploy",
+      "Type": "String"
     }
   },
   "Resources": {
-    "CodeDeployRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": { "Service": [ "codedeploy.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
-            }
-          ]
-        },
-        "Path": "/"
-      }
-    },
     "CodePipelineRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -42,87 +35,6 @@
         "Path": "/"
       }
     },
-    "CodeDeployRolePolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyName": "Q4CDN-CodeDeploy-Service-Role",
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "autoscaling:CompleteLifecycleAction",
-                "autoscaling:DeleteLifecycleHook",
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeLifecycleHooks",
-                "autoscaling:PutLifecycleHook",
-                "autoscaling:RecordLifecycleActionHeartbeat",
-                "autoscaling:CreateAutoScalingGroup",
-                "autoscaling:UpdateAutoScalingGroup",
-                "autoscaling:EnableMetricsCollection",
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribePolicies",
-                "autoscaling:DescribeScheduledActions",
-                "autoscaling:DescribeNotificationConfigurations",
-                "autoscaling:DescribeLifecycleHooks",
-                "autoscaling:SuspendProcesses",
-                "autoscaling:ResumeProcesses",
-                "autoscaling:AttachLoadBalancers",
-                "autoscaling:PutScalingPolicy",
-                "autoscaling:PutScheduledUpdateGroupAction",
-                "autoscaling:PutNotificationConfiguration",
-                "autoscaling:PutLifecycleHook",
-                "autoscaling:DescribeScalingActivities",
-                "autoscaling:DeleteAutoScalingGroup"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
-                "ec2:TerminateInstances"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "tag:GetTags",
-                "tag:GetResources"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "sns:Publish"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "cloudwatch:DescribeAlarms"
-              ],
-              "Resource": "*"
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "elasticloadbalancing:DescribeLoadBalancers",
-                "elasticloadbalancing:DescribeInstanceHealth",
-                "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                "elasticloadbalancing:DeregisterInstancesFromLoadBalancer"
-              ],
-              "Resource": "*"
-            }
-          ]
-        },
-        "Roles": [ { "Ref": "CodeDeployRole" } ]
-      }
-    },
     "CodePipelineRolePolicy": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
@@ -130,27 +42,25 @@
         "PolicyDocument": {
           "Statement": [
             {
-              "Effect": "Allow",
               "Action": [
                 "s3:GetObject",
                 "s3:GetObjectVersion",
                 "s3:GetBucketVersioning"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "s3:PutObject"
               ],
               "Resource": [
-                "arn:aws:s3:::q4stage-cdn*",
                 "arn:aws:s3:::codepipeline*",
                 "arn:aws:s3:::elasticbeanstalk*"
-              ]
+              ],
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "codecommit:CancelUploadArchive",
                 "codecommit:GetBranch",
@@ -158,10 +68,10 @@
                 "codecommit:GetUploadArchiveStatus",
                 "codecommit:UploadArchive"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "codedeploy:CreateDeployment",
                 "codedeploy:GetApplicationRevision",
@@ -169,10 +79,10 @@
                 "codedeploy:GetDeploymentConfig",
                 "codedeploy:RegisterApplicationRevision"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "elasticbeanstalk:*",
                 "ec2:*",
@@ -187,18 +97,18 @@
                 "ecs:*",
                 "iam:PassRole"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "lambda:InvokeFunction",
                 "lambda:ListFunctions"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "opsworks:CreateDeployment",
                 "opsworks:DescribeApps",
@@ -209,10 +119,10 @@
                 "opsworks:UpdateApp",
                 "opsworks:UpdateStack"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "cloudformation:CreateStack",
                 "cloudformation:DeleteStack",
@@ -226,15 +136,16 @@
                 "cloudformation:ValidateTemplate",
                 "iam:PassRole"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             },
             {
-              "Effect": "Allow",
               "Action": [
                 "codebuild:BatchGetBuilds",
                 "codebuild:StartBuild"
               ],
-              "Resource": "*"
+              "Resource": "*",
+              "Effect": "Allow"
             }
           ]
         },
@@ -252,14 +163,8 @@
       "Properties": {
         "DeploymentGroupName": "Q4CDN-Nginx",
         "ApplicationName": { "Ref": "CodeDeployApplication1" },
-        "Ec2TagFilters": [
-          {
-            "Key": "Name",
-            "Value": "Q4CDNTempInstance",
-            "Type": "KEY_AND_VALUE"
-          }
-        ],
-        "ServiceRoleArn": { "Fn::GetAtt": [ "CodeDeployRole", "Arn" ] }
+        "AutoScalingGroups": [ { "Ref": "CodeDeployAutoScalingGroup" } ],
+        "ServiceRoleArn": { "Ref": "CodeDeployRoleArn" }
       }
     },
     "SSLDeployPipeline": {
@@ -323,8 +228,7 @@
             ]
           }
         ]
-      },
-      "DependsOn": "CodeDeployApplication1"
+      }
     }
   },
   "Outputs": {
