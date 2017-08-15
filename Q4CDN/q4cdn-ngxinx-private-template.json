@@ -59,7 +59,7 @@
       "Default": "ContentCache"
     },
     "AppEnvironment": {
-      "Description": "What environment will this be launched in? (dev, test, stage, prod)",
+      "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
       "Type": "String"
     },
     "BackEnd": {
@@ -69,6 +69,7 @@
         "test",
         "dev",
         "stage",
+        "dr",
         "prod"
       ],
       "ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
@@ -149,7 +150,7 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
-                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/nginx/backend-",{"Ref": "BackEnd"},".conf", "\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-",{"Ref": "BackEnd"},".conf", "\n",
                 "sudo service nginx restart \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
