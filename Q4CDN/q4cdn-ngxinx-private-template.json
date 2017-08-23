@@ -142,9 +142,9 @@
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
-            "Ebs": { 
+            "Ebs": {
               "VolumeSize": "100",
-              "VolumeType": "gp2" 
+              "VolumeType": "gp2"
             }
           }
         ],
@@ -157,7 +157,7 @@
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
-                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-",{"Ref": "BackEnd"},".conf", "\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-", { "Ref": "BackEnd" }, ".conf", "\n",
                 "sudo service nginx restart \n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
@@ -165,14 +165,15 @@
 
                 "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
                 "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"\n",
-                "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
-                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
-                
-                "hostnamectl set-hostname Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
+                "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n", "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
+
+                "hostnamectl set-hostname Q4Web-",
+                { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
 
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" },"\n",
+                "/usr/local/bin/cfn-init -v --stack ",
+                { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
               ]
             ]
@@ -192,7 +193,8 @@
                   "Fn::Join": [
                     "",
                     [
-                      "[main]\n", "stack=", { "Ref": "AWS::StackId" }, "\n",
+                      "[main]\n",
+                      "stack=", { "Ref": "AWS::StackId" }, "\n",
                       "region=", { "Ref": "AWS::Region" }, "\n"
                     ]
                   ]
@@ -211,7 +213,12 @@
                       "path=Resources.ServerGroup.Metadata.AWS::CloudFormation::Init\n",
                       "action=/usr/local/bin/cfn-init -v ",
                       "         --stack ",
-                      { "Ref": "AWS::StackName" }, "         --resource LaunchConfig ", "         --configsets nginx_install ", "         --region ", { "Ref": "AWS::Region" },                      "\n"
+                      { "Ref": "AWS::StackName" },
+                      "         --resource LaunchConfig ",
+                      "         --configsets nginx_install ",
+                      "         --region ",
+                      { "Ref": "AWS::Region" },
+                      "\n"
                     ]
                   ]
                 },
@@ -251,16 +258,16 @@
         "ScalingAdjustment": "-1"
       }
     },
-    "CPUAlarmHigh": {
+    "NetworkOutAlarmHigh": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
-        "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
-        "MetricName": "CPUUtilization",
+        "AlarmDescription": "Scale-out if NetworkOut > 400,000,000 for 1 minute",
+        "MetricName": "NetworkOut",
         "Namespace": "AWS/EC2",
         "Statistic": "Average",
-        "Period": "300",
-        "EvaluationPeriods": "2",
-        "Threshold": "90",
+        "Period": "60",
+        "EvaluationPeriods": "1",
+        "Threshold": "400000000",
         "AlarmActions": [
           {
             "Ref": "ScaleUpPolicy"
@@ -275,16 +282,16 @@
         "ComparisonOperator": "GreaterThanThreshold"
       }
     },
-    "CPUAlarmLow": {
+    "NetworkOutAlarmLow": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
-        "AlarmDescription": "Scale-down if CPU < 60% for 10 minutes",
-        "MetricName": "CPUUtilization",
+        "AlarmDescription": "Scale-in if NetworkOut < 250,000,000 for 10 minutes",
+        "MetricName": "NetworkOut",
         "Namespace": "AWS/EC2",
         "Statistic": "Average",
-        "Period": "300",
-        "EvaluationPeriods": "2",
-        "Threshold": "60",
+        "Period": "60",
+        "EvaluationPeriods": "10",
+        "Threshold": "250000000",
         "AlarmActions": [
           {
             "Ref": "ScaleDownPolicy"
@@ -401,7 +408,7 @@
             "FromPort": "8000",
             "ToPort": "8000",
             "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
-          }          
+          }
         ]
       }
     },
