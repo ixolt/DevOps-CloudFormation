@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets and 1 x Security Group.",
+  "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets and 1 x IAM Role.",
   "Parameters": {
     "InstanceTenancy": {
       "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
@@ -519,39 +519,6 @@
           "Ref": "RouteTablePrivateAZ2"
         }
       }
-    },
-    "SecurityGroupPrivate": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Security Group for Private",
-        "VpcId": {
-          "Ref": "VPCBase"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PrivateSecurityGroup"
-                ]
-              ]
-            }
-          }
-        ],
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
     }
   },
   "Outputs": {
@@ -600,7 +567,7 @@
     "outputCodeDeployRoleArn": {
       "Description": "The ARN for the IAM role used by CodeDeploy",
       "Value": {
-         "Fn::GetAtt": [ "CodeDeployRole", "Arn" ] 
+        "Fn::GetAtt": [ "CodeDeployRole", "Arn" ]
       }
     }
   }

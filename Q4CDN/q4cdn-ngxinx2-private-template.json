@@ -1,0 +1,554 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Nginx content caching solution",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "SSHKeyPair": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "ELBSubnet": {
+      "Description": "ELB Public Subnet IDs",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "AppSubnet": {
+      "Description": "App Private Subnet IDs",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "AppGroupName": {
+      "Description": "Name",
+      "Type": "String",
+      "Default": "ContentCache"
+    },
+    "AppEnvironment": {
+      "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
+      "Type": "String"
+    },
+    "BackEnd": {
+      "Type": "String",
+      "Default": "stage",
+      "AllowedValues": [
+        "test",
+        "dev",
+        "stage",
+        "dr",
+        "prod"
+      ],
+      "ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
+      "Description": "Select backend environment: dev, test, stage, prod"
+    },
+    "RDPSecurityGroup": {
+      "Description": "The Security Group for RDP Gateway-based access.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "VPC": {
+      "Description": "VPC",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Mappings": {
+    "UbuntuAMI": {
+      "us-east-1": { "Ubuntu": "ami-d15a75c7" },
+      "us-east-2": { "Ubuntu": "ami-8b92b4ee" },
+      "us-west-2": { "Ubuntu": "ami-835b4efa" },
+      "eu-west-1": { "Ubuntu": "ami-6d48500b" },
+      "eu-central-1": { "Ubuntu": "ami-1c45e273" },
+      "ca-central-1": { "Ubuntu": "ami-b3d965d7" },
+      "ap-southeast-2": { "Ubuntu": "ami-e94e5e8a" }
+    }
+  },
+  "Resources": {
+    "ServerGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT20M",
+          "Count": "1"
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": "4",
+          "MinInstancesInService": "1",
+          "PauseTime": "PT5M",
+          "WaitOnResourceSignals": "true"
+        }
+      },
+      "Properties": {
+        "VPCZoneIdentifier": { "Ref": "AppSubnet" },
+        "LaunchConfigurationName": { "Ref": "LaunchConfig" },
+        "MinSize": "1",
+        "MaxSize": "4",
+        "DesiredCapacity": "1",
+        "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
+      }
+    },
+    "LaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "KeyName": { "Ref": "SSHKeyPair" },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "UbuntuAMI",
+            { "Ref": "AWS::Region" },
+            "Ubuntu"
+          ]
+        },
+        "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
+        "InstanceType": { "Ref": "InstanceType" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": { 
+              "VolumeSize": "100",
+              "VolumeType": "gp2" 
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -ex \n",
+                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
+
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-",{"Ref": "BackEnd"},".conf", "\n",
+                "sudo service nginx restart \n",
+
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
+
+                "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
+                "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"\n",
+                "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
+                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
+                
+                "hostnamectl set-hostname Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
+
+                "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
+
+                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" },"\n",
+                "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
+              ]
+            ]
+          }
+        },
+        "IamInstanceProfile": { "Ref": "InstanceProfile" }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "nginx_install": [ "install_cfn" ]
+          },
+          "install_cfn": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n", "stack=", { "Ref": "AWS::StackId" }, "\n",
+                      "region=", { "Ref": "AWS::Region" }, "\n"
+                    ]
+                  ]
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.ServerGroup.Metadata.AWS::CloudFormation::Init\n",
+                      "action=/usr/local/bin/cfn-init -v ",
+                      "         --stack ",
+                      { "Ref": "AWS::StackName" }, "         --resource LaunchConfig ", "         --configsets nginx_install ", "         --region ", { "Ref": "AWS::Region" },                      "\n"
+                    ]
+                  ]
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [ "/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf" ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ScaleUpPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": { "Ref": "ServerGroup" },
+        "Cooldown": "60",
+        "ScalingAdjustment": "1"
+      }
+    },
+    "ScaleDownPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": { "Ref": "ServerGroup" },
+        "Cooldown": "60",
+        "ScalingAdjustment": "-1"
+      }
+    },
+    "CPUAlarmHigh": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "90",
+        "AlarmActions": [
+          {
+            "Ref": "ScaleUpPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "ServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      }
+    },
+    "CPUAlarmLow": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-down if CPU < 60% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "60",
+        "AlarmActions": [
+          {
+            "Ref": "ScaleDownPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "ServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      }
+    },
+    "ElasticLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "",
+            [
+              "ELB-",
+              { "Ref": "AppGroupName" },
+              "-Group"
+            ]
+          ]
+        },
+        "Subnets": { "Ref": "ELBSubnet" },
+        "SecurityGroups": [ { "Ref": "ELBSecurityGroup" } ],
+        "CrossZone": "true",
+        "Scheme": "internet-facing",
+        "Listeners": [
+          {
+            "LoadBalancerPort": "80",
+            "InstancePort": "80",
+            "Protocol": "HTTP"
+          },
+          {
+            "LoadBalancerPort": "443",
+            "InstancePort": "443",
+            "Protocol": "TCP"
+          }
+        ],
+        "HealthCheck": {
+          "Target": "HTTP:8000/",
+          "HealthyThreshold": "3",
+          "UnhealthyThreshold": "5",
+          "Interval": "30",
+          "Timeout": "5"
+        }
+      }
+    },
+    "ELBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP access on the configured port",
+        "VpcId": { "Ref": "VPC" },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allows SSH from Q4 HQ and HTTP from anywhere",
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  { "Ref": "AppGroupName" },
+                  "SG"
+                ]
+              ]
+            }
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "SourceSecurityGroupId": { "Ref": "RDPSecurityGroup" }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8000",
+            "ToPort": "8000",
+            "SourceSecurityGroupId": { "Ref": "ELBSecurityGroup" }
+          }          
+        ]
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              { "Ref": "AppGroupName" },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeInstances",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [ { "Ref": "InstanceRole" } ]
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "InstanceRole" } ]
+      }
+    }
+  },
+  "Outputs": {
+    "outputAutoScalingGroup": {
+      "Description": "Nginx Autoscaling Group",
+      "Value": {
+        "Ref": "ServerGroup"
+      }
+    },
+    "outputELB": {
+      "Description": "Nginx Elastic Load Balancer",
+      "Value": {
+        "Ref": "ElasticLoadBalancer"
+      }
+    },
+    "outputELBSG": {
+      "Description": "Nginx Elastic Load Balancer Security Group",
+      "Value": {
+        "Ref": "ELBSecurityGroup"
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "EC2 Instance Configuration" },
+          "Parameters": [
+            "InstanceType",
+            "AppGroupName",
+            "AppEnvironment",
+            "VPC",
+            "AppSubnets",
+            "SSHKeyPair"
+          ]
+        }
+      ]
+    }
+  }    
+} 
