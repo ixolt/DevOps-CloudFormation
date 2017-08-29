@@ -172,6 +172,15 @@
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
 
+                "sudo wget -O splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version=6.6.3&product=universalforwarder&filename=splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb&wget=true' && sudo dpkg -i splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb\n",
+                "sudo wget -O /opt/splunkclouduf.spl https://github.com/q4mobile/DevOps-Configuration/blob/chrisj-devops-4073/bootstrap/splunkclouduf.spl?raw=true\n",
+
+                "sudo /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt\n",
+                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password Vvz07xi4@6%UxkO3 -auth admin:changeme\n",
+                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:Vvz07xi4@6%UxkO3\n",
+                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -auth admin:Vvz07xi4@6%UxkO3\n",
+                "sudo /opt/splunkforwarder/bin/splunk restart\n\n",
+
                 "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
 
