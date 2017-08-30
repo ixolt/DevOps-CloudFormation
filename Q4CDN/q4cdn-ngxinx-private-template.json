@@ -84,6 +84,10 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
+    "SplunkAdminPassword": {
+      "Type": "String",
+      "Description": "The password that should be used for splunks admin login"
+    },
     "VPC": {
       "Description": "VPC",
       "Type": "AWS::EC2::VPC::Id"
@@ -176,9 +180,9 @@
                 "sudo wget -O /opt/splunkclouduf.spl https://github.com/q4mobile/DevOps-Configuration/blob/chrisj-devops-4073/bootstrap/splunkclouduf.spl?raw=true\n",
 
                 "sudo /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt\n",
-                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password Vvz07xi4@6%UxkO3 -auth admin:changeme\n",
-                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:Vvz07xi4@6%UxkO3\n",
-                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -auth admin:Vvz07xi4@6%UxkO3\n",
+                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password", {"Ref": "SplunkAdminPassword"}, " -auth admin:changeme\n",
+                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:", {"Ref": "SplunkAdminPassword"}, "\n",
+                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -auth admin:", {"Ref":"SplunkAdminPassword"},"\n",
                 "sudo /opt/splunkforwarder/bin/splunk enable boot-start\n",
                 "sudo /opt/splunkforwarder/bin/splunk restart\n\n",
 
