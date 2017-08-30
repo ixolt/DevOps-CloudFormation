@@ -84,6 +84,11 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
+    "SplunkAdminPassword": {
+      "Type": "String",
+      "Description": "The password that should be used for splunks admin login",
+      "NoEcho": "true"
+    },
     "VPC": {
       "Description": "VPC",
       "Type": "AWS::EC2::VPC::Id"
@@ -171,6 +176,16 @@
                 { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
 
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
+
+                "sudo wget -O splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version=6.6.3&product=universalforwarder&filename=splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb&wget=true' && sudo dpkg -i splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb\n",
+                "sudo wget -O /opt/splunkclouduf.spl https://github.com/q4mobile/DevOps-Configuration/blob/chrisj-devops-4073/bootstrap/splunkclouduf.spl?raw=true\n",
+
+                "sudo /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt\n",
+                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password ", {"Ref": "SplunkAdminPassword"}, " -auth admin:changeme\n",
+                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:", {"Ref": "SplunkAdminPassword"}, "\n",
+                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -auth admin:", {"Ref":"SplunkAdminPassword"} ,"\n",
+                "sudo /opt/splunkforwarder/bin/splunk enable boot-start\n",
+                "sudo /opt/splunkforwarder/bin/splunk restart\n\n",
 
                 "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
                 "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
