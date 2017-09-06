@@ -183,7 +183,7 @@
                 "sudo /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt\n",
                 "sudo /opt/splunkforwarder/bin/splunk edit user admin -password ", {"Ref": "SplunkAdminPassword"}, " -auth admin:changeme\n",
                 "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:", {"Ref": "SplunkAdminPassword"}, "\n",
-                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -auth admin:", {"Ref":"SplunkAdminPassword"} ,"\n",
+                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -sourcetype nginx-",{"Ref":"AppEnvironment"}," -index q4webcdn -auth admin:", {"Ref":"SplunkAdminPassword"} ,"\n",
                 "sudo /opt/splunkforwarder/bin/splunk enable boot-start\n",
                 "sudo /opt/splunkforwarder/bin/splunk restart\n\n",
 
