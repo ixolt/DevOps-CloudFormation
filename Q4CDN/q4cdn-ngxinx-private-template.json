@@ -2,6 +2,16 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Nginx content caching solution",
   "Parameters": {
+    "AWSAccount": {
+      "Description": "What AWS account will this be launched in? (Stage, Prod, DR)",
+      "Type": "String",
+      "Default": "Stage",
+      "AllowedValues": [
+        "Stage",
+        "Prod",
+        "DR"
+      ]
+    },
     "InstanceType": {
       "Type": "String",
       "Default": "t2.micro",
@@ -95,14 +105,11 @@
     }
   },
   "Mappings": {
-    "UbuntuAMI": {
-      "us-east-1": { "Ubuntu": "ami-d15a75c7" },
-      "us-east-2": { "Ubuntu": "ami-8b92b4ee" },
-      "us-west-2": { "Ubuntu": "ami-835b4efa" },
-      "eu-west-1": { "Ubuntu": "ami-6d48500b" },
-      "eu-central-1": { "Ubuntu": "ami-1c45e273" },
-      "ca-central-1": { "Ubuntu": "ami-b3d965d7" },
-      "ap-southeast-2": { "Ubuntu": "ami-e94e5e8a" }
+    "EncryptedUbuntuAMI": {
+      "us-east-1": { "Stage": "ami-7d607006", "DR": "ami-d81606a3"},
+      "us-east-2": { "Stage": "ami-af6d4fca" },
+      "us-west-2": { "DR": "ami-726d990a" },
+      "ca-central-1": { "Stage": "ami-0009b764" }
     }
   },
   "Resources": {
@@ -137,9 +144,9 @@
         "KeyName": { "Ref": "SSHKeyPair" },
         "ImageId": {
           "Fn::FindInMap": [
-            "UbuntuAMI",
+            "EncryptedUbuntuAMI",
             { "Ref": "AWS::Region" },
-            "Ubuntu"
+            {"Ref": "AWSAccount"}
           ]
         },
         "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
