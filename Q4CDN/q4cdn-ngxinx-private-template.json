@@ -135,6 +135,8 @@
         "MinSize": "1",
         "MaxSize": "4",
         "DesiredCapacity": "1",
+        "HealthCheckType": "ELB",
+        "HealthCheckGracePeriod": "60",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
       }
     },
