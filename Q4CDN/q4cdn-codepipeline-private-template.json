@@ -265,12 +265,6 @@
           "Type": "S3",
           "Location": { "Ref": "S3BucketCodePipeline" }
         },
-        "DisableInboundStageTransitions": [
-          {
-            "Reason": "Automatic Deployment Disabled",
-            "StageName": "Deploy-Nginx-Config"
-          }
-        ],
         "RoleArn": { "Fn::GetAtt": [ "CodePipelineRole", "Arn" ] },
         "Stages": [
           {
