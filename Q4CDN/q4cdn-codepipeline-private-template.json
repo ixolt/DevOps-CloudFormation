@@ -221,7 +221,7 @@
                   }
                 ],
                 "Configuration": {
-                  "PollForSourceChanges": "True",
+                  "PollForSourceChanges": "False",
                   "S3Bucket": { "Ref": "S3BucketApp" },
                   "S3ObjectKey": "SSL/ssl.zip"
                 },
@@ -289,7 +289,7 @@
                   "Repo": { "Ref": "GitHubRepo" },
                   "Branch": "master",
                   "OAuthToken": { "Ref": "GitHubOAuthToken" },
-                  "PollForSourceChanges": "True"
+                  "PollForSourceChanges": "False"
                 },
                 "RunOrder": 1
               }
