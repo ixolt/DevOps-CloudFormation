@@ -132,9 +132,9 @@
       "Properties": {
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
-        "MinSize": "1",
+        "MinSize": "2",
         "MaxSize": "4",
-        "DesiredCapacity": "1",
+        "DesiredCapacity": "2",
         "HealthCheckType": "ELB",
         "HealthCheckGracePeriod": "60",
         "LoadBalancerNames": [ { "Ref": "ElasticLoadBalancer" } ]
