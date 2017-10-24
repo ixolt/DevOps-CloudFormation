@@ -451,6 +451,12 @@
         "Path": "/"
       }
     },
+    "LogBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "BucketName" : "nginx-log-archive"
+      }
+    },
     "InstanceRolePolicies": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
@@ -534,6 +540,13 @@
                 "arn:aws:s3:::q4stage-codepipeline*",
                 "arn:aws:s3:::q4dr-codepipeline*"
               ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource":{
+                "Fn::Join": ["", ["arn:aws:s3:::", {"Ref" : "LogBucket"} , "*"]]   
+              }
             }
           ]
         },
@@ -546,8 +559,7 @@
         "Path": "/",
         "Roles": [ { "Ref": "InstanceRole" } ]
       }
-    }
-  },
+    }  },
   "Outputs": {
     "outputAutoScalingGroup": {
       "Description": "Nginx Autoscaling Group",
