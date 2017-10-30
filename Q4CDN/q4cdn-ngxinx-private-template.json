@@ -174,6 +174,10 @@
                 "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-", { "Ref": "BackEnd" }, ".conf", "\n",
                 "sudo service nginx restart \n",
 
+                "curl -o /usr/lib/nginx/ship-nginx-logs.sh https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/chrisj-devops-4211/bootstrap/ship-nginx-logs.sh\n",
+                "sudo chmod u+x /usr/lib/nginx/ship-nginx-logs.sh\n",
+                "curl -o /etc/logrotate.d/nginx https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/chrisj-devops-4211/bootstrap/nginx\n\n",
+
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
 
