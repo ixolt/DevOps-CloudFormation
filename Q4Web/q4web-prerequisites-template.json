@@ -1,0 +1,59 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "IAM cli user, S3 buckets for rdpgw certificates and server bootstrap scripts",
+  "Metadata": { },
+  "Resources": {
+    "CLIUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/",
+        "UserName": {"Fn::Join": ["-",["q4web",{"Ref":"AWS::Region"},"cli","user"]]},
+        "Policies" : [ {
+            "PolicyName": "giveadministratoraccess",
+            "PolicyDocument" : {
+              "Version": "2012-10-17",
+              "Statement": [ {
+                  "Effect": "Allow",
+                  "Action": "*",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CLIUserAccessKey": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": { "Ref":"CLIUser" }
+      }
+    },
+    "RDPGWCertBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"rdpgw","cert"]]}
+      }
+    },
+    "BootstrapBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"server","bootstrap"]]}
+      }
+    }
+  },
+  "Outputs": {
+    "CLIAccessKey": {
+      "Value" : { "Ref":"CLIUserAccessKey"}
+    },
+    "CLIAccessKeySecret": {
+      "Value": { "Fn::GetAtt" : ["CLIUserAccessKey", "SecretAccessKey"]}
+    },
+    "RDPGWS3Bucket":{
+      "Value": {"Ref":"RDPGWCertBucket"}
+    },
+    "BoostrapS3Bucket": {
+      "Value": {"Ref":"BootstrapBucket"}
+    }
+  }
+}

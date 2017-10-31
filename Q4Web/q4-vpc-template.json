@@ -878,7 +878,6 @@
       "AllowedValues": [
         "Development",
         "Test",
-        "Integration",
         "PreProduction",
         "Production"
       ]
