@@ -1,18 +1,13 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Base VPC, Network, and HA NAT instance scaffolding. Please be aware that this template will create resources for which you will be charged.",
+  "Description": "Base VPC, Network, and NAT Gateway.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
-          "Label": {
-            "default": "VPC Configuration"
-          },
+          "Label": { "default": "VPC Configuration" },
           "Parameters": [
             "Environment",
-            "InstanceTenancy",
-            "EdgeType",
-            "EdgeInstanceType",
             "SSHKeyPair"
           ]
         }
@@ -31,16 +26,6 @@
         "Production"
       ]
     },
-    "InstanceTenancy": {
-      "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
-      "Type": "String",
-      "Default": "default",
-      "AllowedValues": [
-        "default",
-        "dedicated"
-      ],
-      "ConstraintDescription": "Must be either 'default' for multi-tenant hypervisor or 'dedicated' for single tenant hypervisor."
-    },
     "SSHKeyPair": {
       "Description": "SSH Keypair. Required for NatInstance configurations. (Not NatGateway)",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -48,35 +33,6 @@
     }
   },
   "Mappings": {
-    "AWSRegionArchNatAMI": {
-      "us-east-1": {
-        "64": "ami-4c9e4b24"
-      },
-      "ap-northeast-1": {
-        "64": "ami-55c29e54"
-      },
-      "sa-east-1": {
-        "64": "ami-b972dba4"
-      },
-      "ap-southeast-1": {
-        "64": "ami-b082dae2"
-      },
-      "ap-southeast-2": {
-        "64": "ami-996402a3"
-      },
-      "us-west-2": {
-        "64": "ami-bb69128b"
-      },
-      "us-west-1": {
-        "64": "ami-2b2b296e"
-      },
-      "eu-central-1": {
-        "64": "ami-204c7a3d"
-      },
-      "eu-west-1": {
-        "64": "ami-14913f63"
-      }
-    },
     "CIDRMapping": {
       "VPC": {
         "CIDR": "172.16.0.0/16"
@@ -124,9 +80,7 @@
         },
         "EnableDnsSupport": "True",
         "EnableDnsHostnames": "True",
-        "InstanceTenancy": {
-          "Ref": "InstanceTenancy"
-        },
+        "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "VPC" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } }
