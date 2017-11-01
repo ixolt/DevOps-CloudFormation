@@ -1,7 +1,31 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "IAM cli user, S3 buckets for rdpgw certificates and server bootstrap scripts",
-  "Metadata": { },
+  "Metadata": { 
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Billing Tags"
+          },
+          "Parameters": [
+            "BillingGroup"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "BillingGroup": {
+          "default": "Billing Group"
+        }
+      }
+    }
+  },
+  "Parameters" : {
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-PROD-DR, Q4WEB-PROD-EU)",
+      "Type":"String"
+    }
+  },
   "Resources": {
     "CLIUser": {
       "Type": "AWS::IAM::User",
@@ -32,13 +56,19 @@
     "RDPGWCertBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties" : {
-        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"rdpgw","cert"]]}
+        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"rdpgw","cert"]]},
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]
       }
     },
     "BootstrapBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties" : {
-        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"server","bootstrap"]]}
+        "BucketName" : {"Fn::Join":["-", ["q4web",{"Ref":"AWS::Region"},"server","bootstrap"]]},
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]
       }
     }
   },

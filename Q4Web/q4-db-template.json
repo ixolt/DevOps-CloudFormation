@@ -3,191 +3,7 @@
   "Description": "Rackspace Hosting - DB Instance",
   "Metadata": {
     "LastUpdated": "2016-03-02",
-    "UpdatedBy": "RSabounds",
-    "AWS::CloudFormation::Interface": {
-      "ParameterGroups": [
-        {
-          "Label": {
-            "default": "VPC Configuration"
-          },
-          "Parameters": [
-            "EdgeType",
-            "EdgeInstanceType",
-            "SSHKeyPair"
-          ]
-        }
-      ]
-    },
-    "AWS::CloudFormation::Designer": {
-      "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "40f31443-c43b-4f64-ae9a-37255093d7c9": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "40f31443-c43b-4f64-ae9a-37255093d7c9"
-        ]
-      },
-      "b08719d7-7c1b-418b-94f0-035fa4e44f1a": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "40f31443-c43b-4f64-ae9a-37255093d7c9"
-        ]
-      },
-      "e50164ae-407d-4e86-939e-793f1b44ecfc": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isrelatedto": [
-          "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b"
-        ]
-      },
-      "be67662e-e8c0-4c8a-853b-784a05a95d6b": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": [],
-        "ismemberof": [
-          "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
-        ],
-        "isrelatedto": [
-          "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e",
-          "e50164ae-407d-4e86-939e-793f1b44ecfc"
-        ]
-      },
-      "4fed13d9-bd84-4b94-bff8-29dc38297e04": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": [],
-        "isrelatedto": [
-          "be67662e-e8c0-4c8a-853b-784a05a95d6b"
-        ]
-      },
-      "e4a55ff0-0e75-4102-b791-54feeecfeb2e": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": [],
-        "ismemberof": [
-          "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
-        ],
-        "isrelatedto": [
-          "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e",
-          "e50164ae-407d-4e86-939e-793f1b44ecfc"
-        ]
-      },
-      "0cf3a908-edaa-4b04-b439-a3d9af16ebad": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 420,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": [],
-        "isconnectedto": [
-          "e4a55ff0-0e75-4102-b791-54feeecfeb2e",
-          "be67662e-e8c0-4c8a-853b-784a05a95d6b"
-        ],
-        "ismemberof": [
-          "f6cbd3f5-6a99-438d-8eca-a3f5500d6f7b"
-        ]
-      },
-      "0be91b50-cc2d-4169-84ba-ddfcfb683ddb": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 420,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isrelatedto": [
-          "e4a55ff0-0e75-4102-b791-54feeecfeb2e"
-        ]
-      }
-    }
+    "UpdatedBy": "RSabounds"
   },
   "Parameters": {
     "InstanceType": {
@@ -274,6 +90,9 @@
     "AWSRegionWinAMI": {
       "us-east-1": {
         "64": "ami-ad0c46ba"
+      },
+      "eu-west-1": {
+        "64": "ami-a9cc1ed0"
       }
     }
   },
@@ -392,35 +211,18 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
-            "Value": { 
-              "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "01" ] ]
-            }
+            "Value": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "01" ] ] }
           }
         ],
         "SecurityGroupIds": [
           { "Ref": "DBSecurityGroup" }
         ],
-        "PrivateIpAddress": {
-          "Fn::Select": [
-            "0",
-            {
-              "Ref": "PrivateIpAddress"
-            }
-          ]
-        },
-        "KeyName": {
-          "Ref": "SSHKeyPair"
-        },
+        "PrivateIpAddress": { "Fn::Select": [ "0", { "Ref": "PrivateIpAddress" } ] },
+        "KeyName": { "Ref": "SSHKeyPair" },
         "SsmAssociations": [
           {
-            "DocumentName": {
-              "Ref": "SSMDocument"
-            }
+            "DocumentName": { "Ref": "SSMDocument" }
           }
         ],
         "UserData": {
@@ -473,17 +275,8 @@
         "ComparisonOperator": "GreaterThanThreshold",
         "Threshold": "0",
         "AlarmActions": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:aws:automate:",
-                {
-                  "Ref": "AWS::Region"
-                },
-                ":ec2:recover"
-              ]
-            ]
+          { 
+            "Fn::Join": [ "", [ "arn:aws:automate:", { "Ref": "AWS::Region" }, ":ec2:recover" ] ]
           }
         ],
         "Dimensions": [
@@ -494,11 +287,6 @@
             }
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "0be91b50-cc2d-4169-84ba-ddfcfb683ddb"
-        }
       }
     },
     "DBSecurityGroup": {
@@ -510,22 +298,8 @@
         },
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace"
-          },
-          {
             "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AppGroupName"
-                  },
-                  "SG"
-                ]
-              ]
-            }
+            "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
           }
         ],
         "SecurityGroupIngress": [
@@ -533,9 +307,7 @@
             "IpProtocol": "tcp",
             "FromPort": "3389",
             "ToPort": "3389",
-            "SourceSecurityGroupId": {
-              "Ref": "RDPSecurityGroup"
-            }
+            "SourceSecurityGroupId": { "Ref": "RDPSecurityGroup" }
           },
           {
             "IpProtocol": "tcp",
@@ -586,11 +358,6 @@
             "CidrIp": "172.21.0.0/16"
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "1d0b05d9-7fd9-49e2-a99a-0951a4fa8804"
-        }
       }
     },
     "SSMDocument": {
@@ -602,23 +369,12 @@
           "runtimeConfig": {
             "aws:domainJoin": {
               "properties": {
-                "directoryId": {
-                  "Ref": "ADDirectory"
-                },
-                "directoryName": {
-                  "Ref": "ADDomain"
-                },
-                "dnsIpAddresses": {
-                  "Ref": "ADDNS"
-                }
+                "directoryId": { "Ref": "ADDirectory" },
+                "directoryName": { "Ref": "ADDomain" },
+                "dnsIpAddresses": { "Ref": "ADDNS" }
               }
             }
           }
-        }
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "e50164ae-407d-4e86-939e-793f1b44ecfc"
         }
       }
     },
@@ -630,38 +386,19 @@
             {
               "Effect": "Allow",
               "Principal": {
-                "Service": [
-                  "ec2.amazonaws.com"
-                ]
+                "Service": [ "ec2.amazonaws.com" ]
               },
-              "Action": [
-                "sts:AssumeRole"
-              ]
+              "Action": [ "sts:AssumeRole" ]
             }
           ]
         },
         "Path": "/"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "40f31443-c43b-4f64-ae9a-37255093d7c9"
-        }
       }
     },
     "InstanceRolePolicies": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
-        "PolicyName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AppGroupName"
-              },
-              "Role"
-            ]
-          ]
-        },
+        "PolicyName": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "Role" ] ] },
         "PolicyDocument": {
           "Statement": [
             {
@@ -734,32 +471,14 @@
             }
           ]
         },
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "b08719d7-7c1b-418b-94f0-035fa4e44f1a"
-        }
+        "Roles": [ { "Ref": "InstanceRole" } ]
       }
     },
     "InstanceProfile": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
-        "Roles": [
-          {
-            "Ref": "InstanceRole"
-          }
-        ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "b630fb0a-12fd-4c9a-8dc9-11c11bbb838e"
-        }
+        "Roles": [ { "Ref": "InstanceRole" } ]
       }
     },
     "DBDnsZone":{
@@ -796,4 +515,4 @@
       }
     }
   }
-}
+} 
