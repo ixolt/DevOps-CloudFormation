@@ -2,48 +2,18 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Creates a SimpleAD directory",
   "Metadata": {
-    "AWS::CloudFormation::Designer": {
-      "6a3444c2-3806-491f-97d0-12646d5e3088": {
-        "size": {
-          "width": 60,
-          "height": 60
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {"default" : "Simple AD Configuration"},
+          "Parameters" : ["DirectoryName", "DirectoryShortName","DirectoryAdminPassword"]
         },
-        "position": {
-          "x": 220,
-          "y": 150
-        },
-        "z": 0,
-        "embeds": []
-      }
-    }
-  },
-  "Resources": {
-    "SimpleDirectory": {
-      "Type": "AWS::DirectoryService::SimpleAD",
-      "Properties": {
-        "Name": {
-          "Ref": "DirectoryName"
-        },
-        "ShortName": {
-          "Ref": "DirectoryShortName"
-        },
-        "Password": {
-          "Ref": "DirectoryAdminPassword"
-        },
-        "Size": "Small",       
-        "VpcSettings": {
-          "VpcId": {
-            "Ref": "DirectoryVPCID"
-          },
-          "SubnetIds": { "Ref" : "DirectoryVPCSubnet" }
+        {
+          "Label": {"default": "VPC Configuration"},
+          "Parameters" : ["DirectoryVPCID","DirectoryVPCSubnet"]
         }
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "6a3444c2-3806-491f-97d0-12646d5e3088"
-        }
-      }
-    }
+      ]        
+    }      
   },
   "Parameters": {
     "DirectoryName": {
@@ -66,19 +36,28 @@
       "Type": "List<AWS::EC2::Subnet::Id>",
       "Description": "Subnets directory"
     }
-  },
-  "Metadata": {
-    "AWS::CloudFormation::Interface": {
-      "ParameterGroups": [
-        {
-          "Label": {"default" : "Simple AD Configuration"},
-          "Parameters" : ["DirectoryName", "DirectoryShortName","DirectoryAdminPassword"]
+  },  
+  "Resources": {
+    "SimpleDirectory": {
+      "Type": "AWS::DirectoryService::SimpleAD",
+      "Properties": {
+        "Name": {
+          "Ref": "DirectoryName"
         },
-        {
-          "Label": {"default": "VPC Configuration"},
-          "Parameters" : ["DirectoryVPCID","DirectoryVPCSubnet"]
+        "ShortName": {
+          "Ref": "DirectoryShortName"
+        },
+        "Password": {
+          "Ref": "DirectoryAdminPassword"
+        },
+        "Size": "Small",       
+        "VpcSettings": {
+          "VpcId": {
+            "Ref": "DirectoryVPCID"
+          },
+          "SubnetIds": { "Ref" : "DirectoryVPCSubnet" }
         }
-      ]        
-    }      
+      }
+    }
   }
 }
