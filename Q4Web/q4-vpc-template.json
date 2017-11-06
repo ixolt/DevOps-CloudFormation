@@ -698,7 +698,10 @@
             "AllocationId"
           ]
         },
-        "SubnetId": { "Ref": "PublicSubnetAZ1" }
+        "SubnetId": { "Ref": "PublicSubnetAZ1" },
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]    
       }
     },
     "WebRouteAZ1": {
@@ -762,7 +765,10 @@
             "AllocationId"
           ]
         },
-        "SubnetId": { "Ref": "PublicSubnetAZ2" }
+        "SubnetId": { "Ref": "PublicSubnetAZ2" },
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]       
       }
     },
     "WebRouteAZ2": {
