@@ -15,14 +15,14 @@
       ],
       "ParameterLabels": {
         "BillingGroup": {
-          "default": "Billing Group"
+          "default": "Billing Tag"
         }
       }
     }
   },
   "Parameters" : {
     "BillingGroup": {
-      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-PROD-DR, Q4WEB-PROD-EU)",
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
       "Type":"String"
     }
   },

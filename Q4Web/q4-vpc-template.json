@@ -10,8 +10,24 @@
             "Environment",
             "SSHKeyPair"
           ]
+        },
+        {
+          "Label":{
+            "default": "Billing Tags"
+          },
+          "Parameters": [
+            "BillingGroup"
+          ]
         }
-      ]
+      ],
+      "ParameterLabels": {
+        "SSHKeyPair": {
+          "default": "SSH Key Pair"
+        },
+        "BillingGroup": {
+          "default": "Billing Tag"
+        }
+      }
     }
   },
   "Parameters": {
@@ -30,6 +46,10 @@
       "Description": "SSH Keypair. Required for NatInstance configurations. (Not NatGateway)",
       "Type": "AWS::EC2::KeyPair::KeyName",
       "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+      "Type":"String"
     }
   },
   "Mappings": {
@@ -83,7 +103,8 @@
         "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "VPC" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -91,14 +112,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -109,26 +123,9 @@
         },
         "MapPublicIpOnLaunch": "True",
         "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PublicAZ1"
-                ]
-              ]
-            }
-          },
-          {
-            "Key": "Environment",
-            "Value": {
-              "Ref": "Environment"
-            }
-          }
+          { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PublicAZ1" ] ] } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": {
           "Ref": "VPCBase"
@@ -139,14 +136,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -157,26 +147,9 @@
         },
         "MapPublicIpOnLaunch": "True",
         "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PublicAZ2"
-                ]
-              ]
-            }
-          },
-          {
-            "Key": "Environment",
-            "Value": {
-              "Ref": "Environment"
-            }
-          }
+          { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PublicAZ2" ] ] } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": {
           "Ref": "VPCBase"
@@ -196,7 +169,8 @@
         "Tags": [ 
             { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "WebSubnetAZ1" ] ] } },
             { "Key": "Environment", "Value": { "Ref": "Environment" } },
-            { "Key": "network", "Value": "private" }
+            { "Key": "network", "Value": "private" },
+            { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -214,7 +188,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "WebSubnetAZ2" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -232,7 +207,8 @@
         "Tags": [ 
             { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PrivateWebSubnetAZ1" ] ] } },
             { "Key": "Environment", "Value": { "Ref": "Environment" } },
-            { "Key": "network", "Value": "private" }
+            { "Key": "network", "Value": "private" },
+            { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -250,7 +226,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PrivateWebSubnetAZ2" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -259,14 +236,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -279,7 +249,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "AppSubnetAZ1" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -288,14 +259,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -308,7 +272,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "AppSubnetAZ2" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -317,14 +282,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -337,7 +295,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "CacheSubnetAZ1" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" } 
       }
@@ -346,14 +305,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -366,7 +318,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "CacheSubnetAZ2" ] ] } }, 
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -375,14 +328,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -395,7 +341,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "DBSubnetAZ1" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -404,14 +351,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -424,7 +364,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "DBSubnetAZ2" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -433,14 +374,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -453,7 +387,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "ADSubnetAZ1" ] ] } },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -462,14 +397,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
+          "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ]
         },
         "CidrBlock": {
           "Fn::FindInMap": [
@@ -482,7 +410,8 @@
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "ADSubnetAZ2" ] ] }  },
           { "Key": "Environment", "Value": { "Ref": "Environment" } },
-          { "Key": "network", "Value": "private" }
+          { "Key": "network", "Value": "private" },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ],
         "VpcId": { "Ref": "VPCBase" }
       }
@@ -492,7 +421,8 @@
       "Properties": {
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "IGW" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -510,7 +440,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "Public" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -520,7 +451,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "WebAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -530,7 +462,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "WebAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -540,7 +473,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PrivateWebAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -550,7 +484,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "PrivateWebAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },      
@@ -560,7 +495,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "AppAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -570,7 +506,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "AppAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } } 
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -580,7 +517,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "CacheAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -590,7 +528,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "CacheAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -600,7 +539,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "DBAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -610,7 +550,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "DBAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -620,7 +561,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "ADAZ1" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
@@ -630,7 +572,8 @@
         "VpcId": { "Ref": "VPCBase" },
         "Tags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Ref": "AWS::StackName" }, "ADAZ2" ] ] } },
-          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+          { "Key": "Environment", "Value": { "Ref": "Environment" } },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
         ]
       }
     },
