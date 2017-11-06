@@ -36,7 +36,15 @@
             "PFXPassword",
             "CertificateCN"
           ]
-        }
+        },
+        {
+          "Label": {
+            "default": "Billing Tags"
+          },
+          "Parameters": [
+            "BillingGroup"
+          ]
+        }        
       ],
       "ParameterLabels": {
         "DomainDNSName": {
@@ -56,7 +64,10 @@
         },
         "VPCID": {
           "default": "VPC ID"
-        }
+        },
+        "BillingGroup": {
+          "default": "Billing Tag"
+        }        
       }
     }
   },
@@ -125,7 +136,11 @@
     "ADDNS": {
       "Description": "Directory Services DNS IPs.",
       "Type": "CommaDelimitedList"
-    }
+    },
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+      "Type":"String"
+    }    
   },
   "Mappings": {
     "AWSAMIRegionMap": {
@@ -222,7 +237,8 @@
           {
             "Key": "Name",
             "Value": "Quant-Ops-RDPGW-RDPGW01"
-          }
+          },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
         ],
         "KeyName": {
           "Ref": "KeyPairName"
@@ -461,7 +477,7 @@
             }
           }
         ]
-      }
+      }      
     },
     "NetworkInterface01": {
       "Type": "AWS::EC2::NetworkInterface",
