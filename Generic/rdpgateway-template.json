@@ -23,7 +23,8 @@
           },
           "Parameters": [
             "KeyPairName",
-            "RDGWInstanceType"
+            "RDGWInstanceType",
+            "InstanceName"
           ]
         },
         {
@@ -67,7 +68,10 @@
         },
         "BillingGroup": {
           "default": "Billing Tag"
-        }        
+        },
+        "InstanceName": {
+          "default": "Instance Name"
+        }
       }
     }
   },
@@ -140,7 +144,11 @@
     "BillingGroup": {
       "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
       "Type":"String"
-    }    
+    },
+    "InstanceName": {
+      "Description": "A string that will identify the instance.",
+      "Type":"String"
+    }       
   },
   "Mappings": {
     "AWSAMIRegionMap": {
@@ -236,7 +244,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Quant-Ops-RDPGW-RDPGW01"
+            "Value": {"Ref":"InstanceName"}
           },
           { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
         ],
@@ -476,7 +484,10 @@
               "Ref": "RDGWCIDR"
             }
           }
-        ]
+        ],
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]        
       }      
     },
     "NetworkInterface01": {
@@ -489,7 +500,10 @@
           {
             "Ref": "RemoteDesktopGatewaySG"
           }
-        ]
+        ],
+        "Tags": [
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}
+        ]        
       }
     },
     "AssociateExternalIP01": {
