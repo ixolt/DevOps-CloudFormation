@@ -45,7 +45,45 @@
             "BillingGroup"
           ]
         }
-      ]
+      ],
+      "ParameterLabels": {
+        "InstanceType": {
+          "default": "Instance Type:"
+        },
+        "SSHKeyPair": {
+          "default": "Key Pair Name:"
+        },
+        "AppSubnets": {
+          "default":"Database Subnets:"
+        },
+        "VPC": {
+          "default": "VPC ID:"
+        },
+        "PrivateIpAddress": {
+          "default": "Private IP Address:"
+        },
+        "ADDomain": {
+          "default": "Active Directory Domain:"
+        },
+        "ADDirectory": {
+          "default": "Active Directory ID:"
+        },
+        "ADDNS": {
+          "default": "Active Directory Nameservers:"
+        },
+        "RDPSecurityGroup": {
+          "default": "RDP Security Group:"
+        },
+        "OctopusEnvironment": {
+          "default": "Octopus Environment:"
+        },
+        "BootstrapScript": {
+          "default": "Bootstrap Script:"
+        },
+        "BillingGroup": {
+          "default": "Billing Tag:"
+        }
+      }
     }
   },
   "Parameters": {
@@ -93,7 +131,7 @@
       "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
     },
     "AppSubnets": {
-      "Description": "App Subnet IDs",
+      "Description": "Database Subnet IDs (be sure to select in order DB1 then DB2)",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "AppGroupName": {
