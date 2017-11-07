@@ -1,0 +1,200 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+"Description": "Q4CDN Master Stack. Calls multiple child CloudFormation templates from S3 bucket.",
+"Parameters": {
+	"InstanceTenancy": {
+		"Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
+		"Type": "String",
+		"Default": "default",
+		"AllowedValues": [
+			"default",
+			"dedicated"
+		],
+		"ConstraintDescription": "Must be either 'default' for multi-tenant hypervisor or 'dedicated' for single tenant hypervisor."
+    },
+	"AWSAccount": {
+		"Description": "What AWS account will this be launched in? (Stage, Prod, DR)",
+		"Type": "String",
+		"Default": "Stage",
+		"AllowedValues": [
+			"Stage",
+			"Prod",
+			"DR"
+		]
+    },
+    "InstanceType": {
+		"Type": "String",
+		"Default": "t2.micro",
+		"AllowedValues": [
+			"t2.micro",
+			"t2.small",
+			"t2.medium",
+			"t2.large",
+			"m3.medium",
+			"m3.large",
+			"m3.xlarge",
+			"m3.2xlarge",
+			"m4.large",
+			"m4.xlarge",
+			"m4.2xlarge",
+			"c3.large",
+			"c3.xlarge",
+			"c3.2xlarge",
+			"c3.4xlarge",
+			"c3.8xlarge",
+			"c4.large",
+			"c4.xlarge",
+			"c4.2xlarge",
+			"c4.4xlarge",
+			"c4.8xlarge",
+			"r3.large",
+			"r3.xlarge",
+			"r3.2xlarge",
+			"r3.4xlarge",
+			"r3.8xlarge",
+			"i2.xlarge",
+			"i2.2xlarge",
+			"i2.4xlarge",
+			"i2.8xlarge"
+		],
+		"ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+		"Description": "Select instance type"
+	},
+    "SSHKeyPair": {
+		"Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+		"Type": "AWS::EC2::KeyPair::KeyName",
+		"ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "AppGroupName": {
+		"Description": "Name",
+		"Type": "String",
+		"Default": "ContentCache"
+    },
+    "AppEnvironment": {
+		"Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
+		"Type": "String"
+    },
+    "BackEnd": {
+		"Type": "String",
+		"Default": "stage",
+		"AllowedValues": [
+			"test",
+			"dev",
+			"stage",
+			"dr",
+			"prod"
+		],
+		"ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
+		"Description": "Select backend environment: dev, test, stage, prod"
+    },
+    "SSHLocation": {
+		"Description": "The IP address range that can be used to SSH to the Nginx instances",
+		"Type": "String",
+		"MinLength": "9",
+		"MaxLength": "18",
+		"Default": "206.223.161.250/32",
+		"AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+		"ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "SplunkAdminPassword": {
+		"Type": "String",
+		"Description": "The password that should be used for splunks admin login",
+		"NoEcho": "true"
+    },
+    "GitHubOwner": {
+      "Description": "The owner of the GitHub repository, i.e. q4mobile",
+      "Type": "String"
+    },
+    "GitHubOAuthToken": {
+      "Description": "The OAuthToken of the GitHub user",
+      "Type": "String"
+    },
+    "GitHubRepo": {
+      "Description": "The GitHub repository",
+      "Type": "String"
+    }
+},
+"Resources": {
+    "VPC": {
+		"Type": "AWS::CloudFormation::Stack",
+		"Properties": {
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-vpc.template",
+			"Parameters": {
+				"InstanceTenancy": { "Ref": "InstanceTenancy" }
+			},
+			"TimeoutInMinutes": "60"
+		}
+    },
+	"Nginx": {
+		"Type": "AWS::CloudFormation::Stack",
+		"Properties": {
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-ngxinx.template",
+			"Parameters": {
+				"AWSAccount": { "Ref": "AWSAccount" },
+				"InstanceType": {"Ref": "InstanceType"},
+				"SSHKeyPair": {"Ref": "SSHKeyPair"},
+				"ELBSubnet": {
+					"Fn::Join": [
+					",",
+					[
+						{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ1" ] },
+						{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ2" ] }
+					]
+					]
+				},
+				"AppSubnet":{
+					"Fn::Join": [
+					",",
+					[
+						{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ1" ] },
+						{ "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ2" ] }
+					]
+					]
+				},
+				"AppGroupName": {"Ref": "AppGroupName"},
+				"AppEnvironment": {"Ref": "AppEnvironment"},
+				"BackEnd": {"Ref": "BackEnd"},
+				"SSHLocation": {"Ref": "SSHLocation"},
+				"SplunkAdminPassword": {"Ref": "SplunkAdminPassword"},
+				"VPCId": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] }
+			},
+			"TimeoutInMinutes": "60"
+		}
+    },
+	"CodePipeline": {
+		"Type": "AWS::CloudFormation::Stack",
+		"Properties": {
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-codepipeline.template",
+			"Parameters": {
+				"CodeDeployAutoScalingGroup": { "Fn::GetAtt": [ "Nginx", "Outputs.outputAutoScalingGroup" ]  },
+				"CodeDeployRoleArn": {"Fn::GetAtt": [ "VPC", "Outputs.outputCodeDeployRoleArn" ]},
+			"GitHubOwner": {"Ref": "GitHubOwner"},
+			"GitHubOAuthToken": {"Ref": "GitHubOAuthToken"},
+			"GitHubRepo": {"Ref": "GitHubRepo"}
+        },
+			"TimeoutInMinutes": "60"
+		}
+	}
+},
+"Outputs": {
+  },
+"Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+      {
+        "Label": { "default": "Environment Configuration" },
+        "Parameters": [
+          "InstanceTenancy"
+        ]
+      },
+      {
+        "Label": { "default": "EC2 Instance Configuration" },
+        "Parameters": [
+          "InstanceType",
+          "KeyName"
+        ]
+      }
+    ]
+   }
+ }
+}
