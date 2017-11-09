@@ -463,8 +463,7 @@
                 "s3:GetObject"
               ],
               "Resource": [
-                "arn:aws:s3:::q4stage-codepipeline*",
-                "arn:aws:s3:::q4dr-codepipeline*"
+                "arn:aws:s3:::q4cdn*"
               ]
             }
           ]

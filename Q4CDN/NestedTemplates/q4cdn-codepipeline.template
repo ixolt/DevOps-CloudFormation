@@ -323,5 +323,35 @@
     }
   },
   "Outputs": {
+    "outputS3BucketApp": {
+		"Description": "S3 Bucket for ssl.zip package",
+		"Value": {
+			"Ref": "S3BucketApp"
+		}
+	},
+	"outputS3BucketCodePipeline": {
+		"Description": "S3 Bucket for CodePipeline artifacts",
+		"Value": {
+			"Ref": "S3BucketCodePipeline"
+		}
+	},
+	"outputCodePipelineRoleArn": {
+      "Description": "The ARN for the IAM role used by CodePipeline",
+      "Value": {
+        "Fn::GetAtt": [ "CodePipelineRole", "Arn" ]
+      }
+    },
+	"outputSSLCertsPipeline": {
+		"Description": "CodePipeline for deploying SSL certificates",
+		"Value": {
+			"Ref": "DeploySSLCertsPipeline"
+		}
+	},
+	"outputNginxConfigPipeline": {
+		"Description": "CodePipeline for deploying Nginx configuration",
+		"Value": {
+			"Ref": "DeployNginxConfigPipeline"
+		}
+	}
   }
 } 
