@@ -1,6 +1,74 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2  instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPCID",
+            "AppSubnet",
+            "ADDomain",
+            "ADDirectory",
+            "ADDNS"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Load Balancer Configuration"
+          },
+          "Parameters": [
+            "ELBSubnet",
+            "ELBType",
+            "MinInstances",
+            "MaxInstances",
+            "DesiredCapacity"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Instance Configuration"
+          },
+          "Parameters": [
+            "InstanceType",
+            "APPGroupName",
+            "KeyName",
+            "RDPSecurityGroup"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Application Configuration"
+          },
+          "Parameters": [
+            "OrionServicesDomain",
+            "CDServiceDomain",
+            "CDNServiceDomain"
+          ]
+        },
+        {
+          "Label":{
+            "default": "Bootstrapping & Deployments"
+          },
+          "Parameters":[
+            "OctopusEnvironment",
+            "BootstrapScript"
+          ]
+        },        
+        {
+          "Label": {
+            "default": "Billing Tags"
+          },
+          "Parameters": [
+            "BillingGroup"
+          ]
+        }        
+      ]
+    }
+  },
   "Parameters": {
     "InstanceType": {
       "Type": "String",
@@ -58,15 +126,6 @@
       ],
       "Description": "Should Loadbalancer be public or private?"
     },
-    "InstancesPublicIP": {
-      "Type": "String",
-      "Default": "False",
-      "AllowedValues": [
-        "False",
-        "True"
-      ],
-      "Description": "Specifies whether to launch instances with public IP addresses in your VPC"
-    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -83,8 +142,7 @@
     },
     "ADDomain": {
       "Description": "AD Domain to join computers to.",
-      "Type": "String",
-      "Default": "test.com"
+      "Type": "String"
     },
     "ADDirectory": {
       "Description": "Directory Services ID.",
@@ -93,12 +151,51 @@
     "ADDNS": {
       "Description": "Directory Services DNS IPs.",
       "Type": "CommaDelimitedList"
+    },
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+      "Type":"String"
+    },
+    "MinInstances": {
+      "Description": "The minimum number of instances to have running in the load balancer",
+      "Type": "Number"
+    },
+    "MaxInstances": {
+      "Description": "The maximum number of instances to have running in the load balancer",
+      "Type": "Number"
+    },
+    "DesiredCapacity": {
+      "Description": "The number of instances that should be running.",
+      "Type": "Number"
+    },
+    "OrionServicesDomain": {
+      "Description": "The domain that should be used by orion services",
+      "Type": "String"
+    },
+    "CDServiceDomain": {
+      "Description": "The domain that should be used by clientdata services",
+      "Type": "String"
+    },
+    "CDNServiceDomain": {
+      "Description": "The domain that should be used by cdn services",
+      "Type": "String"      
+    },
+    "OctopusEnvironment": {
+      "Description": "The environment that this machine should be registered to in Octopus",
+      "Type":"String"
+    },
+    "BootstrapScript": {
+      "Description": "The name of the S3 bucke that contains the server bootstrap script",
+      "Type": "String"
     }
   },
   "Mappings": {
     "AWSRegionWinAMI": {
       "us-east-1": {
         "64": "ami-a5b599b2"
+      },
+      "eu-west-1": {
+        "64": "ami-1ecc1e67"
       }
     }
   },
@@ -126,9 +223,15 @@
         "LaunchConfigurationName": {
           "Ref": "LaunchConfig"
         },
-        "MinSize": "1",
-        "MaxSize": "4",
-        "DesiredCapacity": "1",
+        "MinSize": {
+          "Ref": "MinInstances"
+        },
+        "MaxSize": {
+          "Ref": "MaxInstances"
+        },
+        "DesiredCapacity": {
+          "Ref": "DesiredCapacity"
+        },
         "LoadBalancerNames": [
           {
             "Ref": "ElasticLoadBalancer"
@@ -136,31 +239,26 @@
         ],
         "Tags": [
           {
-            "Key": "ServiceProvider",
-            "Value": "Rackspace",
-            "PropagateAtLaunch": "True"
-          },
-          {
             "Key": "Name",
             "Value": {
               "Ref": "APPGroupName"
             },
             "PropagateAtLaunch": "True"
+          },
+          {
+            "Key": "q4:Billing:Group",
+            "Value": {
+              "Ref": "BillingGroup"
+            },
+            "PropagateAtLaunch": "True"
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "403d22c0-7821-4dff-a6ec-083edd0c7b2f"
-        }
       }
     },
     "LaunchConfig": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": {
-          "Ref": "InstancesPublicIP"
-        },
+        "AssociatePublicIpAddress": "False",
         "KeyName": {
           "Ref": "KeyName"
         },
@@ -194,15 +292,7 @@
               [
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ",
-                {
-                  "Ref": "SSMDocument"
-                },
-                " -Region ",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "\n",
+                "$newName = $env:COMPUTERNAME\n",
                 "cfn-init.exe -v --configsets Init ",
                 "--stack ",
                 {
@@ -214,9 +304,8 @@
                   "Ref": "AWS::Region"
                 },
                 "\n",
-                "$newName = $env:COMPUTERNAME\n",
-                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"app-server\"\n",
+                "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"app-server\"\n",
                 "</powershell>"
               ]
             ]
@@ -321,9 +410,6 @@
               }
             }
           }
-        },
-        "AWS::CloudFormation::Designer": {
-          "id": "0e3a89b2-6459-46de-b92e-3d83abf4204c"
         }
       }
     },
@@ -365,11 +451,6 @@
         },
         "Cooldown": "60",
         "ScalingAdjustment": "1"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "dd7500ad-7a7a-4461-9dcb-57c75c485cd7"
-        }
       }
     },
     "ScaleDownPolicy": {
@@ -381,11 +462,6 @@
         },
         "Cooldown": "60",
         "ScalingAdjustment": "-1"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "becbf977-4b66-4618-9c0e-7fb282d44fbf"
-        }
       }
     },
     "CPUAlarmHigh": {
@@ -412,11 +488,6 @@
           }
         ],
         "ComparisonOperator": "GreaterThanThreshold"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "dbe0e618-89af-4ca3-b7cb-4dfdf1ccd6ad"
-        }
       }
     },
     "CPUAlarmLow": {
@@ -443,11 +514,6 @@
           }
         ],
         "ComparisonOperator": "LessThanThreshold"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "5378d2a5-6527-47a9-97c6-911cb086b32d"
-        }
       }
     },
     "ElasticLoadBalancer": {
@@ -601,11 +667,6 @@
           "Interval": "30",
           "Timeout": "5"
         }          
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "51efbfc8-d2cd-44cf-9cd3-7e933aac7dce"
-        }
       }
     },
     "ELBDnsZoneClientData":{
@@ -614,21 +675,21 @@
             "HostedZoneConfig" : {
                 "Comment":"Hosted zone for clientdata services"
             },
-            "Name" : "clientdata.local.",
+            "Name" : { "Fn::Join": [ "", [ { "Ref": "CDServiceDomain" }, "." ] ] },
             "VPCs" : [{
                 "VPCId":{"Ref":"VPCID"},
-                "VPCRegion":"us-east-1"
+                "VPCRegion":{"Ref":"AWS::Region"}
             }]
         }
     },
     "ELBDnsRecordsClientData": {
         "Type" : "AWS::Route53::RecordSetGroup",
         "Properties" : {
-          "HostedZoneName" : "clientdata.local.",
+          "HostedZoneName" : { "Fn::Join": [ "", [ { "Ref": "CDServiceDomain" }, "." ] ] },
           "Comment" : "Zone apex alias targeted to myELB LoadBalancer.",
           "RecordSets" : [
             {
-              "Name" : "data.clientdata.local.",
+              "Name" : { "Fn::Join": [ "", [ "data.", { "Ref": "CDServiceDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -636,7 +697,7 @@
               }
             },
             {
-              "Name" : "facade.clientdata.local.",
+              "Name" : { "Fn::Join": [ "", [ "facade.", { "Ref": "CDServiceDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -652,21 +713,21 @@
             "HostedZoneConfig" : {
                 "Comment":"Hosted zone for q4orion services"
             },
-            "Name" : "q4orion.local.",
+            "Name" : { "Fn::Join": [ "", [ { "Ref": "OrionServicesDomain" }, "." ] ] },
             "VPCs" : [{
                 "VPCId":{"Ref":"VPCID"},
-                "VPCRegion":"us-east-1"
+                "VPCRegion":{"Ref":"AWS::Region"}
             }]
         }
     },
     "ELBDnsRecordsOrion": {
         "Type" : "AWS::Route53::RecordSetGroup",
         "Properties" : {
-          "HostedZoneName" : "q4orion.local.",
+          "HostedZoneName" : { "Fn::Join": [ "", [ { "Ref": "OrionServicesDomain" }, "." ] ] },
           "Comment" : "Zone apex alias targeted to myELB LoadBalancer.",
           "RecordSets" : [
             {
-              "Name" : "ca.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "ca.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -674,7 +735,7 @@
               }
             },
             {
-              "Name" : "ca.data.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "ca.data.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -682,7 +743,7 @@
               }
             },
             {
-              "Name" : "air.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "air.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -690,7 +751,7 @@
               }
             },              
             {
-              "Name" : "go.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "go.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -698,7 +759,7 @@
               }
             },              
             {
-              "Name" : "sec.data.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "sec.data.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -706,7 +767,7 @@
               }
             },
             {
-              "Name" : "sec.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "sec.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -714,7 +775,7 @@
               }
             },
             {
-              "Name" : "sq.data.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "sq.data.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -722,7 +783,7 @@
               }
             },
             {
-              "Name" : "sq.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "sq.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -730,7 +791,7 @@
               }
             },
             {
-              "Name" : "sqx.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "sqx.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -738,7 +799,7 @@
               }
             },
             {
-              "Name" : "cf.publisher.q4orion.local.",
+              "Name" :  { "Fn::Join": [ "", [ "cf.publisher.", { "Ref": "OrionServicesDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -754,21 +815,21 @@
             "HostedZoneConfig" : {
                 "Comment":"Hosted zone for cdn services"
             },
-            "Name" : "q4cdn.local.",
+            "Name" : { "Fn::Join": [ "", [ { "Ref": "CDNServiceDomain" }, "." ] ] },
             "VPCs" : [{
                 "VPCId":{"Ref":"VPCID"},
-                "VPCRegion":"us-east-1"
+                "VPCRegion":{"Ref":"AWS::Region"}
             }]
         }
     },     
     "ELBDnsRecordsCDN": {
         "Type" : "AWS::Route53::RecordSetGroup",
         "Properties" : {
-          "HostedZoneName" : "q4cdn.local.",
+          "HostedZoneName" : { "Fn::Join": [ "", [ { "Ref": "CDNServiceDomain" }, "." ] ] },
           "Comment" : "Zone apex alias targeted to myELB LoadBalancer.",
           "RecordSets" : [
             {
-              "Name" : "service.q4cdn.local.",
+              "Name" : { "Fn::Join": [ "", [ "service.", { "Ref": "CDNServiceDomain" }, "." ] ] },
               "Type" : "A",
               "AliasTarget" : {
                   "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
@@ -820,11 +881,6 @@
           }
             
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "0285e4e0-1845-4f2b-824f-c71aa8d8588b"
-        }
       }
     },
     "ELBSecurityGroup": {
@@ -842,11 +898,6 @@
             "CidrIp": "172.16.0.0/16"
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "5a819583-a0de-447f-82c7-c2cd2e4801e7"
-        }
       }
     },
     "InstanceRole": {
@@ -868,11 +919,6 @@
           ]
         },
         "Path": "/"
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "6c682c37-90a0-439e-95d2-8bf98697edd1"
-        }
       }
     },
     "InstanceRolePolicies": {
@@ -966,11 +1012,6 @@
             "Ref": "InstanceRole"
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "7923afe3-3b35-4387-b075-95591f09de4a"
-        }
       }
     },
     "InstanceRoleInstanceProfile": {
@@ -982,11 +1023,6 @@
             "Ref": "InstanceRole"
           }
         ]
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Designer": {
-          "id": "2b971f16-89b7-4be0-9ca4-79933bfef922"
-        }
       }
     }
   },
@@ -997,217 +1033,6 @@
         "Fn::GetAtt": [
           "ElasticLoadBalancer",
           "DNSName"
-        ]
-      }
-    }
-  },
-  "Metadata": {
-    "AWS::CloudFormation::Designer": {
-      "6c682c37-90a0-439e-95d2-8bf98697edd1": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "2b971f16-89b7-4be0-9ca4-79933bfef922": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "6c682c37-90a0-439e-95d2-8bf98697edd1"
-        ]
-      },
-      "7923afe3-3b35-4387-b075-95591f09de4a": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "6c682c37-90a0-439e-95d2-8bf98697edd1"
-        ]
-      },
-      "5a819583-a0de-447f-82c7-c2cd2e4801e7": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "0285e4e0-1845-4f2b-824f-c71aa8d8588b": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "51efbfc8-d2cd-44cf-9cd3-7e933aac7dce": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "ismemberof": [
-          "5a819583-a0de-447f-82c7-c2cd2e4801e7"
-        ]
-      },
-      "9a1ba676-b8f7-4953-a416-72e2d11ca73e": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "0e3a89b2-6459-46de-b92e-3d83abf4204c": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": [],
-        "ismemberof": [
-          "0285e4e0-1845-4f2b-824f-c71aa8d8588b"
-        ],
-        "isrelatedto": [
-          "9a1ba676-b8f7-4953-a416-72e2d11ca73e",
-          "2b971f16-89b7-4be0-9ca4-79933bfef922"
-        ]
-      },
-      "14554f4d-ac09-49a8-9b40-ee3820f6ef0a": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 300,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": []
-      },
-      "403d22c0-7821-4dff-a6ec-083edd0c7b2f": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 420,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": [],
-        "isconnectedto": [
-          "51efbfc8-d2cd-44cf-9cd3-7e933aac7dce"
-        ],
-        "isassociatedwith": [
-          "0e3a89b2-6459-46de-b92e-3d83abf4204c"
-        ],
-        "isrelatedto": [
-          "14554f4d-ac09-49a8-9b40-ee3820f6ef0a"
-        ]
-      },
-      "becbf977-4b66-4618-9c0e-7fb282d44fbf": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 420,
-          "y": 210
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "403d22c0-7821-4dff-a6ec-083edd0c7b2f"
-        ]
-      },
-      "5378d2a5-6527-47a9-97c6-911cb086b32d": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 420,
-          "y": 330
-        },
-        "z": 1,
-        "embeds": [],
-        "isrelatedto": [
-          "becbf977-4b66-4618-9c0e-7fb282d44fbf",
-          "403d22c0-7821-4dff-a6ec-083edd0c7b2f"
-        ]
-      },
-      "dd7500ad-7a7a-4461-9dcb-57c75c485cd7": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 450
-        },
-        "z": 1,
-        "embeds": [],
-        "isassociatedwith": [
-          "403d22c0-7821-4dff-a6ec-083edd0c7b2f"
-        ]
-      },
-      "dbe0e618-89af-4ca3-b7cb-4dfdf1ccd6ad": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 180,
-          "y": 450
-        },
-        "z": 1,
-        "embeds": [],
-        "isrelatedto": [
-          "dd7500ad-7a7a-4461-9dcb-57c75c485cd7",
-          "403d22c0-7821-4dff-a6ec-083edd0c7b2f"
         ]
       }
     }
