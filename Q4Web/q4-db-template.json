@@ -1,9 +1,90 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Rackspace Hosting - DB Instance",
+  "Description": "DB Instance",
   "Metadata": {
-    "LastUpdated": "2016-03-02",
-    "UpdatedBy": "RSabounds"
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "AppSubnets",
+            "ADDomain",
+            "ADDirectory",
+            "ADDNS"
+          ]
+        },
+        {
+          "Label": {
+            "default":"EC2 Configuration"
+          },
+          "Parameters": [
+            "InstanceType",
+            "AppGroupName",
+            "PrivateIpAddress",
+            "SSHKeyPair",
+            "RDPSecurityGroup"
+          ]
+        },
+        {
+          "Label":{
+            "default": "Bootstrapping & Deployments"
+          },
+          "Parameters":[
+            "OctopusEnvironment",
+            "BootstrapScript"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Billing Tags"
+          },
+          "Parameters": [
+            "BillingGroup"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "InstanceType": {
+          "default": "Instance Type:"
+        },
+        "SSHKeyPair": {
+          "default": "Key Pair Name:"
+        },
+        "AppSubnets": {
+          "default":"Database Subnets:"
+        },
+        "VPC": {
+          "default": "VPC ID:"
+        },
+        "PrivateIpAddress": {
+          "default": "Private IP Address:"
+        },
+        "ADDomain": {
+          "default": "Active Directory Domain:"
+        },
+        "ADDirectory": {
+          "default": "Active Directory ID:"
+        },
+        "ADDNS": {
+          "default": "Active Directory Nameservers:"
+        },
+        "RDPSecurityGroup": {
+          "default": "RDP Security Group:"
+        },
+        "OctopusEnvironment": {
+          "default": "Octopus Environment:"
+        },
+        "BootstrapScript": {
+          "default": "Bootstrap Script:"
+        },
+        "BillingGroup": {
+          "default": "Billing Tag:"
+        }
+      }
+    }
   },
   "Parameters": {
     "InstanceType": {
@@ -50,7 +131,7 @@
       "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
     },
     "AppSubnets": {
-      "Description": "App Subnet IDs",
+      "Description": "Database Subnet IDs (be sure to select in order DB1 then DB2)",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "AppGroupName": {
@@ -84,6 +165,18 @@
     "RDPSecurityGroup": {
       "Description": "The Security Group for RDP Gateway-based access.",
       "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "OctopusEnvironment": {
+      "Description": "The environment that this machine should be registered to in Octopus",
+      "Type":"String"
+    },
+    "BootstrapScript": {
+      "Description": "The name of the S3 bucke that contains the server bootstrap script",
+      "Type": "String"
+    },
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+      "Type":"String"
     }
   },
   "Mappings": {
@@ -213,7 +306,8 @@
           {
             "Key": "Name",
             "Value": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "01" ] ] }
-          }
+          },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
         ],
         "SecurityGroupIds": [
           { "Ref": "DBSecurityGroup" }
@@ -225,6 +319,16 @@
             "DocumentName": { "Ref": "SSMDocument" }
           }
         ],
+        "BlockDeviceMappings" : [
+          {
+             "DeviceName" : "/dev/sda1",
+             "Ebs" : { "VolumeSize" : "100" }
+          },
+          {
+            "DeviceName" : "/dev/sdm",
+            "Ebs" : { "VolumeSize" : "500" }
+          }
+        ],                  
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -232,30 +336,9 @@
               [
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ",
-                {
-                  "Ref": "SSMDocument"
-                },
-                " -Region ",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "\n",
-                "cfn-init.exe -v --configsets Init ",
-                "--stack ",
-                {
-                  "Ref": "AWS::StackName"
-                },
-                " --resource LaunchConfig ",
-                "--region ",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "\n",
-                "\n",
                 "$newName = $env:COMPUTERNAME\n",
-                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"db-server\"\n",                  
+                "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"db-server\"\n",                  
                 "</powershell> \n"
               ]
             ]
@@ -300,7 +383,8 @@
           {
             "Key": "Name",
             "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
-          }
+          },
+          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
         ],
         "SecurityGroupIngress": [
           {
@@ -487,18 +571,18 @@
             "HostedZoneConfig" : {
                 "Comment":"Hosted zone for db server"
             },
-            "Name" : "q4web.local.",
+            "Name" : { "Fn::Join": [ "", [ { "Ref": "ADDomain" }, "." ] ] }, 
             "VPCs" : [{
                 "VPCId":{"Ref":"VPC"},
-                "VPCRegion":"us-east-1"
+                "VPCRegion":{ "Ref": "AWS::Region" }
             }]
         }
     },     
     "DBDnsZoneRecord": {
         "Type" : "AWS::Route53::RecordSet",
         "Properties" : {
-            "HostedZoneName" : "q4web.local.",
-            "Name" : "db.q4web.local.",
+            "HostedZoneName" : { "Fn::Join": [ "", [ { "Ref": "ADDomain" }, "." ] ] },
+            "Name" : { "Fn::Join": [ "", [ "db.", { "Ref": "ADDomain" } ] ] },
             "Type" : "A",
             "TTL" : "900",
             "ResourceRecords" : [
