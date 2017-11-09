@@ -184,16 +184,30 @@
       {
         "Label": { "default": "Environment Configuration" },
         "Parameters": [
-          "InstanceTenancy"
+          "InstanceTenancy",
+		  "AWSAccount",
+		  "AppGroupName",
+		  "AppEnvironment",
+		  "BackEnd"
         ]
       },
       {
         "Label": { "default": "EC2 Instance Configuration" },
         "Parameters": [
           "InstanceType",
-          "KeyName"
+          "SSHKeyPair",
+		  "SSHLocation",
+		  "SplunkAdminPassword"
         ]
-      }
+      },
+	  {
+		"Label": { "default": "Nginx Configuration GitHub Info" },
+		"Parameters": [
+          "GitHubOwner",
+          "GitHubRepo",
+		  "GitHubOAuthToken"
+        ]
+	  }
     ]
    }
  }
