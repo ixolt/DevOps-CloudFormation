@@ -27,8 +27,72 @@
 			}
 		}
 	},
+	"S3BucketAppPolicy" : {
+		"Type" : "AWS::S3::BucketPolicy",
+		"Properties" : {
+			"Bucket" : {"Ref" : "S3BucketApp"},
+			"PolicyDocument": {
+				"Statement":[{
+					"Sid": "DenyIncorrectEncryptionHeader",
+					"Action":["s3:PutObject"],
+					"Effect":"Deny",
+					"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3BucketApp" } , "/*" ]]},
+					"Principal": "*",
+					"Condition": {
+						"StringNotEquals": {
+							"s3:x-amz-server-side-encryption": "aws:kms"
+						}
+					}
+				},
+				{
+					"Sid": "DenyUnEncryptedObjectUploads",
+					"Action":["s3:PutObject"],
+					"Effect":"Deny",
+					"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3BucketApp" } , "/*" ]]},
+					"Principal": "*",
+					"Condition": {
+						"Null": {
+						"s3:x-amz-server-side-encryption": "true"
+						}
+					}
+				}]
+			}
+		}
+	},
 	"S3BucketCodePipeline": {
 		"Type" : "AWS::S3::Bucket"
+	},
+	"S3BucketCodePipelinePolicy" : {
+		"Type" : "AWS::S3::BucketPolicy",
+		"Properties" : {
+			"Bucket" : {"Ref" : "S3BucketCodePipeline"},
+			"PolicyDocument": {
+				"Statement":[{
+					"Sid": "DenyIncorrectEncryptionHeader",
+					"Action":["s3:PutObject"],
+					"Effect":"Deny",
+					"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3BucketCodePipeline" } , "/*" ]]},
+					"Principal": "*",
+					"Condition": {
+						"StringNotEquals": {
+							"s3:x-amz-server-side-encryption": "aws:kms"
+						}
+					}
+				},
+				{
+					"Sid": "DenyUnEncryptedObjectUploads",
+					"Action":["s3:PutObject"],
+					"Effect":"Deny",
+					"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3BucketCodePipeline" } , "/*" ]]},
+					"Principal": "*",
+					"Condition": {
+						"Null": {
+						"s3:x-amz-server-side-encryption": "true"
+						}
+					}
+				}]
+			}
+		}
 	},
 	"CodePipelineRole": {
       "Type": "AWS::IAM::Role",
