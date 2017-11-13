@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Creates EC2 instance(s) and resources related to private Q4 Web public servers",
+  "Description": "Creates EC2 instance(s) and resources related to Q4 Web public servers",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -304,9 +304,26 @@
                   "Ref": "AWS::Region"
                 },
                 "\n",
-                "$newName = $env:COMPUTERNAME\n",
+                "Rename-Computer -NewName",
+                {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "Q4WEB",
+                      {
+                        "Ref": "APPGroupName"
+                      },
+                      {
+                        "Ref": "AWS::Region"
+                      }
+                    ]
+                  ]
+                },
+                
+                " -Force\n",                
                 "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"web-server\"\n",
+                
                 "</powershell>"
               ]
             ]

@@ -268,10 +268,12 @@
               "DeviceName" : "/dev/sda1",
               "Ebs" : { "VolumeSize" : "100" }
            },
-           {
-            "DeviceName" : "/dev/sdm",
-            "Ebs" : { "VolumeSize" : "250" }
-          }           
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+              "VolumeSize": "250"
+            }
+          }
         ],          
         "UserData": {
           "Fn::Base64": {
