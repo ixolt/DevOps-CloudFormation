@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2  instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Description": "Creates EC2 instance(s) and resources related to Q4 Web app servers",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -292,9 +292,17 @@
         },
         "BlockDeviceMappings" : [
            {
-              "DeviceName" : "/dev/sdm",
-              "Ebs" : { "VolumeSize" : "100" }
-           }
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "100"
+            }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+              "VolumeSize": "250"
+            }
+          }           
         ],
         "UserData": {
           "Fn::Base64": {

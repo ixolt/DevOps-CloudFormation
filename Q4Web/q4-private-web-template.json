@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Windows AutoScale Template **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Description": "Creates EC2 instance(s) and resources related to private Q4 Web admin servers",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -116,15 +116,6 @@
       ],
       "Description": "Should Loadbalancer be public or private?"
     },
-    "InstancesPublicIP": {
-      "Type": "String",
-      "Default": "False",
-      "AllowedValues": [
-        "False",
-        "True"
-      ],
-      "Description": "Specifies whether to launch instances with public IP addresses in your VPC"
-    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -152,12 +143,39 @@
     "ADDNS": {
       "Description": "Directory Services DNS IPs.",
       "Type": "CommaDelimitedList"
+    },
+    "BillingGroup": {
+      "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+      "Type":"String"
+    },
+    "MinInstances": {
+      "Description": "The minimum number of instances to have running in the load balancer",
+      "Type": "Number"
+    },
+    "MaxInstances": {
+      "Description": "The maximum number of instances to have running in the load balancer",
+      "Type": "Number"
+    },
+    "DesiredCapacity": {
+      "Description": "The number of instances that should be running.",
+      "Type": "Number"
+    },
+    "OctopusEnvironment": {
+      "Description": "The environment that this machine should be registered to in Octopus",
+      "Type":"String"
+    },
+    "BootstrapScript": {
+      "Description": "The name of the S3 bucke that contains the server bootstrap script",
+      "Type": "String"
     }
   },
   "Mappings": {
     "AWSRegionWinAMI": {
       "us-east-1": {
         "64": "ami-a5b599b2"
+      },
+      "eu-west-1": {
+        "64": "ami-1ecc1e67"
       }
     }
   },
@@ -185,9 +203,15 @@
         "LaunchConfigurationName": {
           "Ref": "LaunchConfig"
         },
-        "MinSize": "1",
-        "MaxSize": "10",
-        "DesiredCapacity": "1",
+        "MinSize": {
+          "Ref": "MinInstances"
+        },
+        "MaxSize": {
+          "Ref": "MaxInstances"
+        },
+        "DesiredCapacity": {
+          "Ref": "DesiredCapacity"
+        },
         "LoadBalancerNames": [
           {
             "Ref": "ElasticLoadBalancer"
@@ -197,7 +221,18 @@
           {
             "Key": "Name",
             "Value": {
-              "Ref": "APPGroupName"
+              "Fn::Join": [
+                "-",
+                [
+                  "Q4WEB",
+                  {
+                    "Ref": "APPGroupName"
+                  },
+                  {
+                    "Ref": "AWS::Region"
+                  }
+                ]
+              ]
             },
             "PropagateAtLaunch": "True"
           }
@@ -207,9 +242,7 @@
     "LaunchConfig": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": {
-          "Ref": "InstancesPublicIP"
-        },
+        "AssociatePublicIpAddress": "False",
         "KeyName": {
           "Ref": "KeyName"
         },
@@ -234,7 +267,11 @@
            {
               "DeviceName" : "/dev/sda1",
               "Ebs" : { "VolumeSize" : "100" }
-           }
+           },
+           {
+            "DeviceName" : "/dev/sdm",
+            "Ebs" : { "VolumeSize" : "250" }
+          }           
         ],          
         "UserData": {
           "Fn::Base64": {
@@ -264,8 +301,8 @@
                 },
                 "\n",
                 "$newName = $env:COMPUTERNAME\n",
-                "Read-S3Object -BucketName q4-server-automation-staging -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"Staging\" -OctopusMachineRole \"admin-web-server\"\n",
+                "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"admin-web-server\"\n",
                 "</powershell>"
               ]
             ]
