@@ -1,7 +1,7 @@
 {
   "Version": "2012-10-17",
   "Statement": [
-	{
+    {
       "Sid": "Stmt1492007575565",
       "Action": [
         "s3:CreateBucket",
@@ -19,5 +19,13 @@
       ],
       "Effect": "Allow",
       "Resource": "arn:aws:s3:::*"
-   ]
+    },
+    {
+      "Action": [
+        "s3:*"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::newsservice-prod-*"
+    }
+  ]
 }

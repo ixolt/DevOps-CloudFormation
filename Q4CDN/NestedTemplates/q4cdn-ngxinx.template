@@ -42,10 +42,57 @@
       "us-east-2": { "Stage": "ami-af6d4fca", "DR": "ami-f586a490" },
       "us-west-2": { "DR": "ami-726d990a" },
       "ca-central-1": { "Stage": "ami-0009b764" }
-    }
+    },
+	"ELBAccountID": {
+		"us-east-1": {"AWSAccountID": "127311923021"},
+		"us-east-2": {"AWSAccountID": "033677994240"},
+		"us-west-2": {"AWSAccountID": "797873946194"},
+		"ca-central-1": {"AWSAccountID": "985666609251"}
+	}
   },
   "Resources": {
-    "ServerGroup": {
+	"S3LoggingBucket": {
+		"Type" : "AWS::S3::Bucket",
+		"Properties": {
+			"LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "Id": "ELBLogsLifeCycle",			           
+							"Prefix": "",
+                            "Status": "Enabled",
+                            "ExpirationInDays": "180",
+                            "Transitions": [
+                                {
+                                  "TransitionInDays": "30",
+                                  "StorageClass": "STANDARD_IA"
+                                },
+								{
+								  "TransitionInDays": "90",
+                                  "StorageClass": "GLACIER"
+								}
+                            ]
+                        }
+                    ]
+                }
+		}
+	},
+	"S3LoggingBucketPolicy" : {
+		"Type" : "AWS::S3::BucketPolicy",
+		"Properties" : {
+			"Bucket" : {"Ref" : "S3LoggingBucket"},
+			"PolicyDocument": {
+				"Statement":[{
+					"Action":["s3:PutObject"],
+					"Effect":"Allow",
+					"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3LoggingBucket" } , "/*" ]]},
+					"Principal": {
+						"AWS": [{ "Fn::FindInMap" : [ "ELBAccountID", { "Ref" : "AWS::Region" }, "AWSAccountID"]}]
+					}
+				}]
+			}
+		}
+	},
+	"ServerGroup": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "CreationPolicy": {
         "ResourceSignal": {
@@ -265,7 +312,12 @@
     "ElasticLoadBalancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "LoadBalancerName": {
+        "AccessLoggingPolicy": {
+			"EmitInterval" : "60",
+			"Enabled" : "true",
+			"S3BucketName" : { "Ref": "S3LoggingBucket" }
+		},
+		"LoadBalancerName": {
           "Fn::Join": [
             "",
             [
@@ -298,7 +350,8 @@
           "Interval": "30",
           "Timeout": "5"
         }
-      }
+      },
+	  "DependsOn": "S3LoggingBucketPolicy"
     },
     "ELBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
@@ -497,7 +550,13 @@
       "Value": {
         "Ref": "ELBSecurityGroup"
       }
-    }
+    },
+	"outputELBS3LoggingBucket": {
+		"Description": "S3 Bucket that holds Elastic Load Balancer Access Logs",
+      "Value": {
+        "Ref": "S3LoggingBucket"
+      }
+	}
   },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
