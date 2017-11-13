@@ -22,7 +22,7 @@
           },
           "Parameters": [
             "InstanceType",
-            "AppGroupName",
+            "APPGroupName",
             "PrivateIpAddress",
             "SSHKeyPair",
             "RDPSecurityGroup"
@@ -134,7 +134,7 @@
       "Description": "Database Subnet IDs (be sure to select in order DB1 then DB2)",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
-    "AppGroupName": {
+    "APPGroupName": {
       "Description": "Name",
       "Type": "String",
       "Default": "DB"
@@ -305,9 +305,27 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "01" ] ] }
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "Q4WEB",
+                  {
+                    "Ref": "APPGroupName"
+                  },
+                  {
+                    "Ref": "AWS::Region"
+                  }
+                ]
+              ]
+            }
           },
-          { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
+          {
+            "Key": "q4:Billing:Group",
+            "Value": {
+              "Ref": "BillingGroup"
+            }
+          }
         ],
         "SecurityGroupIds": [
           { "Ref": "DBSecurityGroup" }
@@ -382,7 +400,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
+            "Value": { "Fn::Join": [ "", [ { "Ref": "APPGroupName" }, "SG" ] ] }
           },
           { "Key": "q4:Billing:Group", "Value": {"Ref": "BillingGroup"}}          
         ],
@@ -482,7 +500,7 @@
     "InstanceRolePolicies": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
-        "PolicyName": { "Fn::Join": [ "-", [ { "Ref": "AppGroupName" }, "Role" ] ] },
+        "PolicyName": { "Fn::Join": [ "-", [ { "Ref": "APPGroupName" }, "Role" ] ] },
         "PolicyDocument": {
           "Statement": [
             {

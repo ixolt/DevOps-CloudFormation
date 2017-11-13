@@ -241,7 +241,18 @@
           {
             "Key": "Name",
             "Value": {
-              "Ref": "APPGroupName"
+              "Fn::Join": [
+                "-",
+                [
+                  "Q4WEB",
+                  {
+                    "Ref": "APPGroupName"
+                  },
+                  {
+                    "Ref": "AWS::Region"
+                  }
+                ]
+              ]
             },
             "PropagateAtLaunch": "True"
           },
