@@ -1,7 +1,7 @@
 {
   "Version": "2012-10-17",
   "Statement": [
- {
+    {
       "Sid": "Stmt1492005795822",
       "Action": [
         "lambda:AddPermission",
@@ -26,7 +26,10 @@
         "lambda:UpdateFunctionConfiguration"
       ],
       "Effect": "Allow",
-      "Resource": "arn:aws:lambda:us-east-1:632976446797:function:*"
+      "Resource": [
+        "arn:aws:lambda:us-east-1:632976446797:function:newsservice-prod*",
+        "arn:aws:lambda:us-east-1:632976446797:function:euro-news-prod*"
+      ]
     } 
   ]
 }
