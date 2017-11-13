@@ -20,7 +20,7 @@ New-CFNStack @CFStackParams `
                            @{ ParameterKey="SSHLocation"; ParameterValue="206.223.161.250/32"},`
                            @{ ParameterKey="SplunkAdminPassword"; ParameterValue="Passw0rd!"},`
                            @{ ParameterKey="GitHubOwner"; ParameterValue="q4mobile"},`
-                           @{ ParameterKey="GitHubOAuthToken"; ParameterValue="b3ed205083e45aeac96c364655cdc87419a4c18b"},`
+                           @{ ParameterKey="GitHubOAuthToken"; ParameterValue="GitHubOAuthToken"},`
                            @{ ParameterKey="GitHubRepo"; ParameterValue="DevOps-NginxConfiguration"}                           
                          )
                            
