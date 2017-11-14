@@ -216,26 +216,6 @@
           {
             "Ref": "ElasticLoadBalancer"
           }
-        ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  "Q4WEB",
-                  {
-                    "Ref": "APPGroupName"
-                  },
-                  {
-                    "Ref": "AWS::Region"
-                  }
-                ]
-              ]
-            },
-            "PropagateAtLaunch": "True"
-          }
         ]
       }
     },
@@ -304,7 +284,7 @@
                   "Ref": "AWS::Region"
                 },
                 "\n",
-                "Rename-Computer -NewName",
+                "$newName = \"",
                 {
                   "Fn::Join": [
                     "-",
@@ -313,17 +293,19 @@
                       {
                         "Ref": "APPGroupName"
                       },
-                      {
-                        "Ref": "AWS::Region"
-                      }
+                      "$instanceId"
                     ]
                   ]
                 },
+                "\"\n",
                 
-                " -Force\n",                
+                "$nameTag = New-Object Amazon.EC2.Model.Tag\n",
+                "$nameTag.Key = \"Name\"\n",
+                "$nameTag.Value = \"$newName\"\n",
+                "New-EC2Tag -Resource $instanceId -Tag $nameTag\n",
+                
                 "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"web-server\"\n",
-                
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"web-server\" -InstanceName \"$newName\"\n",
                 "</powershell>"
               ]
             ]
@@ -720,7 +702,10 @@
             {
               "Effect": "Allow",
               "Action": [
-                "ec2:DescribeInstanceStatus"
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeInstances",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"                
               ],
               "Resource": "*"
             },
