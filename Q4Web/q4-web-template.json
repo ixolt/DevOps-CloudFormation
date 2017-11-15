@@ -35,6 +35,7 @@
           "Parameters": [
             "InstanceType",
             "APPGroupName",
+            "AppEnvironment",
             "KeyName",
             "RDPSecurityGroup"
           ]
@@ -167,7 +168,14 @@
     "BootstrapScript": {
       "Description": "The name of the S3 bucke that contains the server bootstrap script",
       "Type": "String"
-    }
+    },
+    "AppEnvironment": {
+      "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
+      "Type": "String",
+      "AllowedValues": [
+        "DEV", "TEST", "STAGE", "DR", "PROD"
+      ]
+    }    
   },
   "Mappings": {
     "AWSRegionWinAMI": {
@@ -290,6 +298,9 @@
                     "-",
                     [
                       "Q4WEB",
+                      {
+                        "Ref": "AppEnvironment"
+                      },
                       {
                         "Ref": "APPGroupName"
                       },
