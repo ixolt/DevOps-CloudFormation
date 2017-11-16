@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "DB Instance",
+  "Description": "Creates EC2 instance(s) and resources related to Q4 Web database servers",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -288,9 +288,6 @@
               }
             }
           }
-        },
-        "AWS::CloudFormation::Designer": {
-          "id": "e4a55ff0-0e75-4102-b791-54feeecfeb2e"
         }
       },
       "Properties": {
@@ -537,7 +534,10 @@
             {
               "Effect": "Allow",
               "Action": [
-                "ec2:DescribeInstanceStatus"
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeInstances",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"                
               ],
               "Resource": "*"
             },

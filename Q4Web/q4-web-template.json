@@ -280,7 +280,7 @@
                 {
                   "Ref": "AWS::Region"
                 },
-                "\n",
+                "\n\n",
                 "cfn-init.exe -v --configsets Init ",
                 "--stack ",
                 {
@@ -291,7 +291,37 @@
                 {
                   "Ref": "AWS::Region"
                 },
-                "\n",
+                "\n\n",
+                "$countTagName = \"",
+                {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "Q4WEB",
+                      {
+                        "Ref": "AppEnvironment"
+                      },
+                      {
+                        "Ref": "APPGroupName"
+                      },
+                      "InstanceCount"
+                    ]
+                  ]
+                },
+                "\"\n",
+                "$tags = Get-EC2Tag -Filter @{ Name=\"resource-type\"; Values=\"instance\"}, @{ Name=\"key\"; Values= $countTagName }\n",
+                "$countTag = New-Object Amazon.EC2.Model.Tag\n",
+                "$countTag.Key = $countTagName\n",
+                "$countTag.Value = \"1\"\n\n",
+                "if($tags) {\n",
+                "    $countTag.Value = [int]$tags[0].Value + 1\n",
+                "} else {\n",
+                "   New-EC2Tag -Resource $instanceid -Tag $countTag\n",
+                "}\n\n",
+                "foreach($tag in $tags) {\n",
+                "   New-EC2Tag -Resource $tag.ResourceId -Tag $countTag\n",
+                "}\n\n",
+                "$countTagValue = $countTag.Value\n",
                 "$newName = \"",
                 {
                   "Fn::Join": [
@@ -304,16 +334,16 @@
                       {
                         "Ref": "APPGroupName"
                       },
-                      "$instanceId"
+                      "$countTagValue"
                     ]
                   ]
                 },
-                "\"\n",
+                "\"\n\n",
                 
                 "$nameTag = New-Object Amazon.EC2.Model.Tag\n",
                 "$nameTag.Key = \"Name\"\n",
                 "$nameTag.Value = \"$newName\"\n",
-                "New-EC2Tag -Resource $instanceId -Tag $nameTag\n",
+                "New-EC2Tag -Resource $instanceid -Tag $nameTag\n\n",
                 
                 "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
                 ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"web-server\" -InstanceName \"$newName\"\n",
