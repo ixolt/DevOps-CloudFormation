@@ -139,7 +139,10 @@
     "APPGroupName": {
       "Description": "EC2 Server Instance Name",
       "Type": "String",
-      "ConstraintDescription": "Must follow normal syntax conventions"
+      "ConstraintDescription": "Must follow normal syntax conventions",
+      "AllowedValues": [
+        "WEB", "PWEB", "TWEB", "APP", "DB", "CACH"
+      ]      
     },
     "ADDomain": {
       "Description": "AD Domain to join computers to.",
@@ -186,14 +189,14 @@
       "Type":"String"
     },
     "BootstrapScript": {
-      "Description": "The name of the S3 bucke that contains the server bootstrap script",
+      "Description": "The name of the S3 bucket that contains the server bootstrap script",
       "Type": "String"
     },
     "AppEnvironment": {
       "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
       "Type": "String",
       "AllowedValues": [
-        "DEV", "TEST", "STAGE", "DR", "PROD"
+        "DEV", "TST", "STG", "DR", "PRD"
       ]
     }        
   },

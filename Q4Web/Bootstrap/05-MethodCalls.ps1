@@ -26,6 +26,9 @@ if(!$tentacleExists) {
     Install-Tentacle -Environment $OctopusEnvironment -MachineRole $OctopusMachineRole -ComputerName $newName
 }
 
+Write-Host "Setting machine name to $newName"
+Rename-Computer -NewName $newName -Force
+
 if($RunServerConfigurationProject) {
     Set-Location $bootstrapPath
 
@@ -36,8 +39,6 @@ if($RunServerConfigurationProject) {
     Write-Host "Calling Octopus server to deploy 'Configure Web Server'"
     Deploy-Project -Project $ServerConfigurationProject -Environment $OctopusEnvironment -Machine $newName
 }
-
-Rename-Computer -ComputerName $newName -Force
 
 Write-Host "`n"
 Write-Host "Bootstrapping complete!" -ForegroundColor Green
