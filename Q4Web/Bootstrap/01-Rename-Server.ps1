@@ -22,3 +22,4 @@ $nameTag = New-Object Amazon.EC2.Model.Tag
 $nameTag.Key = "Name"
 $nameTag.Value = $newName
 New-EC2Tag -Resource $InstanceId -Tag $nameTag
+

@@ -52,6 +52,7 @@ $nameTag = New-Object Amazon.EC2.Model.Tag
 $nameTag.Key = "Name"
 $nameTag.Value = $newName
 New-EC2Tag -Resource $InstanceId -Tag $nameTag
+
 function Install-Tentacle() {
     param (
         [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
@@ -355,6 +356,8 @@ if($RunServerConfigurationProject) {
     Write-Host "Calling Octopus server to deploy 'Configure Web Server'"
     Deploy-Project -Project $ServerConfigurationProject -Environment $OctopusEnvironment -Machine $newName
 }
+
+Rename-Computer -ComputerName $newName -Force
 
 Write-Host "`n"
 Write-Host "Bootstrapping complete!" -ForegroundColor Green

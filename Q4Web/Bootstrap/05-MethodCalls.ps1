@@ -37,6 +37,8 @@ if($RunServerConfigurationProject) {
     Deploy-Project -Project $ServerConfigurationProject -Environment $OctopusEnvironment -Machine $newName
 }
 
+Rename-Computer -ComputerName $newName -Force
+
 Write-Host "`n"
 Write-Host "Bootstrapping complete!" -ForegroundColor Green
 Write-Host "`n"

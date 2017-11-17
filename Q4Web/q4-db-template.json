@@ -334,9 +334,8 @@
               [
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "$newName = $env:COMPUTERNAME\n",
                 "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"db-server\"\n",                  
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"db-server\" -InstanceId $instanceid -AppEnvironment ", {"Ref":"AppEnvironment"}, " -AppGroupName ", {"Ref":"APPGroupName"}, "\n",                  
                 "</powershell> \n"
               ]
             ]
