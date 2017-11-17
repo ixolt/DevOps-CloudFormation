@@ -301,23 +301,6 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "Tags": [
           {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  "Q4WEB",
-                  {
-                    "Ref": "APPGroupName"
-                  },
-                  {
-                    "Ref": "AWS::Region"
-                  }
-                ]
-              ]
-            }
-          },
-          {
             "Key": "q4:Billing:Group",
             "Value": {
               "Ref": "BillingGroup"

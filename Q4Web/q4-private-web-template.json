@@ -227,20 +227,9 @@
         ],
         "Tags": [
           {
-            "Key": "Name",
+            "Key": "q4:Billing:Group",
             "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  "Q4WEB",
-                  {
-                    "Ref": "APPGroupName"
-                  },
-                  {
-                    "Ref": "AWS::Region"
-                  }
-                ]
-              ]
+              "Ref": "BillingGroup"
             },
             "PropagateAtLaunch": "True"
           }
