@@ -129,7 +129,10 @@
     "APPGroupName": {
       "Description": "EC2 Server Instance Name",
       "Type": "String",
-      "ConstraintDescription": "Must follow normal syntax conventions"
+      "ConstraintDescription": "Must follow normal syntax conventions",
+      "AllowedValues": [
+        "WEB", "PWEB", "TWEB", "APP", "DB", "CACH"
+      ]      
     },
     "ADDomain": {
       "Description": "AD Domain Name for use with AWS",
@@ -699,6 +702,7 @@
               "Action": [
                 "ec2:DescribeInstanceStatus",
                 "ec2:DescribeInstances",
+                "ec2:DescribeTags",                
                 "ec2:CreateTags",
                 "ec2:DeleteTags"                
               ],
