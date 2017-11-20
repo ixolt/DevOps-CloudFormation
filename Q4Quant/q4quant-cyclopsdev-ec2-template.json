@@ -1,0 +1,337 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates EC2 Instance running Windows Server 2008 R2",
+  "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "RDPGatewaySecurityGroup": {
+      "Description": "The security group ID for the RDP Gateway instance.",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "RDPKeyPair": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "AppSubnets": {
+      "Description": "App Subnet IDs",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "AppGroupName": {
+      "Description": "Name",
+      "Type": "String",
+      "Default": "Analyst"
+    },
+    "VPC": {
+      "Description": "VPC",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "ADDomain": {
+      "Description": "AD Domain Name for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain value."
+    },
+    "ADDirectory": {
+      "Description": "AD Directory ID for use with AWS",
+      "Type": "String",
+      "ConstraintDescription": "must be the a valid Domain ID value."
+    },
+    "ADDNS": {
+      "Description": "Directory Services DNS IPs.",
+      "Type": "CommaDelimitedList"
+    }
+  },
+  "Mappings": {
+    "AWSRegionWinAMI": { "us-east-1": { "64": "ami-1def7d0b" } }
+  },
+  "Resources": {
+    "CyclopsDev": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": { "Fn::FindInMap": [ "AWSRegionWinAMI", { "Ref": "AWS::Region" }, "64" ] },
+        "InstanceType": { "Ref": "InstanceType" },
+        "NetworkInterfaces": [
+            {
+                "NetworkInterfaceId" : {"Ref":"NetworkInterface01"},
+                "DeviceIndex" : "0"
+            }
+        ],           
+        "BlockDeviceMappings" : [
+           {
+              "DeviceName" : "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "100" 
+            }
+           }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "SsmAssociations": [
+          {
+            "DocumentName": { "Ref": "SSMDocument" }
+          }
+        ],
+        "Tags":[
+          {
+            "Key": "Name",
+            "Value": "CYCLOPSDEV"
+          }
+          ],
+        "KeyName": { "Ref": "RDPKeyPair" },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                  "Rename-Computer -NewName CyclopsDev -Force",
+                "\n",
+                "</powershell> \n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "AppSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allows Active Directory and RDP traffic",
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Join": [ "", [ { "Ref": "AppGroupName" }, "SG" ] ] }
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "SourceSecurityGroupId": { "Ref": "RDPGatewaySecurityGroup" }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "135",
+            "ToPort": "139",
+            "CidrIp": "172.10.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "445",
+            "ToPort": "445",
+            "CidrIp": "172.10.0.0/16"
+          }
+        ]
+      }
+    },
+    "SSMDocument": {
+      "Type": "AWS::SSM::Document",
+      "Properties": {
+        "Content": {
+          "schemaVersion": "1.2",
+          "description": "Join instances to an AWS Directory Service domain.",
+          "runtimeConfig": {
+            "aws:domainJoin": {
+              "properties": {
+                "directoryId": { "Ref": "ADDirectory" },
+                "directoryName": { "Ref": "ADDomain" },
+                "dnsIpAddresses": { "Ref": "ADDNS" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AppGroupName"
+              },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstanceStatus"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "InstanceRole" } ]
+      }
+    },
+    "NetworkInterface01":{
+        "Type" : "AWS::EC2::NetworkInterface",
+        "Properties":{
+            "SubnetId" : { "Fn::Select": [ "0", { "Ref": "AppSubnets" } ] },
+            "GroupSet" : [ { "Ref" : "AppSecurityGroup" } ]
+        }
+    }
+  },
+  "Outputs": {
+    "outputCyclopsDev": {
+      "Value": {
+        "Ref": "CyclopsDev"
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "EC2 Instance Configuration" },
+          "Parameters": [
+            "InstanceType",
+            "AppGroupName",
+            "VPC",
+            "AppSubnets",
+            "RDPKeyPair",
+            "RDPGatewaySecurityGroup"
+          ]
+        },
+        {
+          "Label": { "default": "Simple AD Configuration" },
+          "Parameters": [
+              "ADDomain",
+              "ADDirectory",
+              "ADDNS"
+          ]
+        }
+      ]
+    }
+  }    
+} 
