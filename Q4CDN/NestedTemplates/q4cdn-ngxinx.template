@@ -317,6 +317,10 @@
 			"Enabled" : "true",
 			"S3BucketName" : { "Ref": "S3LoggingBucket" }
 		},
+		"ConnectionDrainingPolicy": {
+			"Enabled" : "true",
+			"Timeout" : "300"
+		},
 		"LoadBalancerName": {
           "Fn::Join": [
             "",
