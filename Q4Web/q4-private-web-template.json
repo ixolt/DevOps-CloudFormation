@@ -176,7 +176,7 @@
       "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
       "Type": "String",
       "AllowedValues": [
-        "DEV", "TEST", "STAGE", "DR", "PROD"
+        "DEV", "TST", "STG", "DR", "PRD"
       ]
     }    
   },

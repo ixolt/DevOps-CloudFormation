@@ -23,6 +23,7 @@
           "Parameters": [
             "InstanceType",
             "APPGroupName",
+            "AppEnvironment",
             "PrivateIpAddress",
             "SSHKeyPair",
             "RDPSecurityGroup"
@@ -82,7 +83,7 @@
         },
         "BillingGroup": {
           "default": "Billing Tag:"
-        }
+        }        
       }
     }
   },
@@ -135,9 +136,13 @@
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "APPGroupName": {
-      "Description": "Name",
+      "Description": "EC2 Server Instance Name",
       "Type": "String",
-      "Default": "DB"
+      "ConstraintDescription": "Must follow normal syntax conventions",
+      "Default" : "DB",
+      "AllowedValues": [
+        "WEB", "PWEB", "TWEB", "APP", "DB", "CACH"
+      ]      
     },
     "VPC": {
       "Description": "VPC",
@@ -177,6 +182,13 @@
     "BillingGroup": {
       "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
       "Type":"String"
+    },
+    "AppEnvironment": {
+      "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
+      "Type": "String",
+      "AllowedValues": [
+        "DEV", "TST", "STG", "DR", "PRD"
+      ]
     }
   },
   "Mappings": {
@@ -335,7 +347,7 @@
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
                 "Read-S3Object -BucketName ", {"Ref":"BootstrapScript"} ," -Key Bootstrap.ps1 -File Bootstrap.ps1\n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"db-server\" -InstanceId $instanceid -AppEnvironment ", {"Ref":"AppEnvironment"}, " -AppGroupName ", {"Ref":"APPGroupName"}, "\n",                  
+                ".\\Bootstrap.ps1 -OctopusEnvironment ", {"Ref":"OctopusEnvironment"}," -OctopusMachineRole \"db-server\" -InstanceId $instanceid -AppEnvironment ", {"Ref":"AppEnvironment"}, " -AppGroupName ", {"Ref":"APPGroupName"}, "\n",
                 "</powershell> \n"
               ]
             ]
@@ -518,6 +530,7 @@
               "Action": [
                 "ec2:DescribeInstanceStatus",
                 "ec2:DescribeInstances",
+                "ec2:DescribeTags",
                 "ec2:CreateTags",
                 "ec2:DeleteTags"                
               ],

@@ -129,7 +129,10 @@
     "APPGroupName": {
       "Description": "EC2 Server Instance Name",
       "Type": "String",
-      "ConstraintDescription": "Must follow normal syntax conventions"
+      "ConstraintDescription": "Must follow normal syntax conventions",
+      "AllowedValues": [
+        "WEB", "PWEB", "TWEB", "APP", "DB", "CACH"
+      ]      
     },
     "ADDomain": {
       "Description": "AD Domain Name for use with AWS",
@@ -173,9 +176,9 @@
       "Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
       "Type": "String",
       "AllowedValues": [
-        "DEV", "TEST", "STAGE", "DR", "PROD"
+        "DEV", "TST", "STG", "DR", "PRD"
       ]
-    }    
+    }        
   },
   "Mappings": {
     "AWSRegionWinAMI": {
