@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1510761692088",
+      "Action": [
+        "codepipeline:StartPipelineExecution",
+        "codepipeline:GetPipelineState",
+        "codepipeline:GetPipelineExecution",
+        "codepipeline:GetPipeline"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:codepipeline:us-east-2:481636229104:Q4CDN-Deploy-SSLCerts",
+        "arn:aws:codepipeline:us-east-1:481636229104:Q4CDN-Deploy-SSLCerts",
+        "arn:aws:codepipeline:us-west-2:481636229104:Q4CDN-Deploy-SSLCerts"
+      ]
+    }
+  ]
+}

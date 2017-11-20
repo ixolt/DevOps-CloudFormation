@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1510762888314",
+      "Action": [
+        "ec2:DescribeInstances"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Stmt1510762941591",
+      "Action": [
+        "ssm:GetCommandInvocation",
+        "ssm:ListCommandInvocations",
+        "ssm:SendCommand"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ssm:us-east-2:481636229104:*",
+        "arn:aws:ssm:us-east-1:481636229104:*",
+        "arn:aws:ssm:us-west-2:481636229104:*"
+      ]
+    }
+  ]
+}
