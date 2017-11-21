@@ -242,7 +242,7 @@
                 "source": "http://packages.couchbase.com/releases/4.1.0/couchbase-server-community_4.1.0-windows_amd64.exe"
               },
               "C:\\Install\\couchbase_install.iss": {
-                "source": "https://s3.amazonaws.com/q4-server-automation-staging/couchbase_install.iss"
+                "source": "https://s3.amazonaws.com/q4web-server-software/couchbase_install.iss"
               }
             },
             "commands": {
@@ -307,6 +307,12 @@
             "Ebs": {
               "VolumeSize": "50"
             }
+          },
+          {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+              "VolumeSize": "250"
+            }
           }
         ],
         "SubnetId": { 
@@ -338,15 +344,6 @@
               [
                 "<powershell>\n",
                 "$instanceid = Invoke-RestMethod -Uri http://169.254.169.254/latest/meta-data/instance-id\n",
-                "New-SSMAssociation -InstanceId $instanceid -Name ",
-                {
-                  "Ref": "SSMDocument"
-                },
-                " -Region ",
-                {
-                  "Ref": "AWS::Region"
-                },
-                "\n",
                 "cfn-init.exe -v --configsets Init ",
                 "--stack ",
                 {
@@ -357,11 +354,11 @@
                 {
                   "Ref": "AWS::Region"
                 },
-                "\n",
-                "\n",
+                "\n\n",
+
                 "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False\n",
                 "$newName = $env:COMPUTERNAME\n",
-                "$env:path = $env:path + \";C:\\program files\\Couchbase\\Server\\bin\\\"\n",
+                "$env:path = $env:path + \";D:\\program files\\Couchbase\\Server\\bin\\\"\n",
                 "couchbase-cli cluster-init -c 172.16.31.101:8091 --cluster-init-username=Administrator --cluster-init-password=sunset00 --cluster-init-ramsize=8529\n",
                 "couchbase-cli bucket-create -c 172.16.31.101:8091 --bucket=DataBucket --bucket-password=q4pass1234! --bucket-type=couchbase --bucket-ramsize=2000 --bucket-replica=1 -u Administrator -p sunset00\n",
                 "couchbase-cli bucket-create -c 172.16.31.101:8091 --bucket=VersionBucket --bucket-password=q4pass1234! --bucket-type=couchbase --bucket-ramsize=2000 --bucket-replica=1 -u Administrator -p sunset00\n",
