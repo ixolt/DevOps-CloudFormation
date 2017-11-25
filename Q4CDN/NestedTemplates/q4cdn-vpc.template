@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Base VPC, 2 x Public Subnets, 2 x Private Subnets and 1 x IAM Role.",
+  "Description": "Base VPC, 2 x Public Subnets and 1 x IAM Role.",
   "Parameters": {
 	"InstanceTenancy": {
       "Type": "String"
@@ -205,90 +205,6 @@
         }
       }
     },
-    "PrivateSubnetAZ1": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
-        },
-        "CidrBlock": {
-          "Fn::FindInMap": [
-            "CIDRMapping",
-            "PrivateSubnet",
-            "AZ1"
-          ]
-        },
-        "MapPublicIpOnLaunch": "True",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PrivateAZ1"
-                ]
-              ]
-            }
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPCBase"
-        }
-      }
-    },
-    "PrivateSubnetAZ2": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-            }
-          ]
-        },
-        "CidrBlock": {
-          "Fn::FindInMap": [
-            "CIDRMapping",
-            "PrivateSubnet",
-            "AZ2"
-          ]
-        },
-        "MapPublicIpOnLaunch": "True",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "PrivateAZ2"
-                ]
-              ]
-            }
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPCBase"
-        }
-      }
-    },
     "IGWBase": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
@@ -321,46 +237,6 @@
         }
       }
     },
-    "NATAZ1IP": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {
-        "Domain": "vpc"
-      }
-    },
-    "NATAZ1": {
-      "Type": "AWS::EC2::NatGateway",
-      "Properties": {
-        "AllocationId": {
-          "Fn::GetAtt": [
-            "NATAZ1IP",
-            "AllocationId"
-          ]
-        },
-        "SubnetId": {
-          "Ref": "PublicSubnetAZ1"
-        }
-      }
-    },
-    "NATAZ2IP": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {
-        "Domain": "vpc"
-      }
-    },
-    "NATAZ2": {
-      "Type": "AWS::EC2::NatGateway",
-      "Properties": {
-        "AllocationId": {
-          "Fn::GetAtt": [
-            "NATAZ2IP",
-            "AllocationId"
-          ]
-        },
-        "SubnetId": {
-          "Ref": "PublicSubnetAZ2"
-        }
-      }
-    },
     "RouteTablePublic": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -385,54 +261,6 @@
         ]
       }
     },
-    "RouteTablePrivateAZ1": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "VPCBase"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "Private"
-                ]
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "RouteTablePrivateAZ2": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "VPCBase"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  "Private"
-                ]
-              ]
-            }
-          }
-        ]
-      }
-    },
     "RoutePublicDefault": {
       "Type": "AWS::EC2::Route",
       "Properties": {
@@ -442,30 +270,6 @@
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": {
           "Ref": "IGWBase"
-        }
-      }
-    },
-    "RoutePrivateDefaultAZ1": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "RouteTablePrivateAZ1"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": {
-          "Ref": "NATAZ1"
-        }
-      }
-    },
-    "RoutePrivateDefaultAZ2": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "RouteTablePrivateAZ2"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": {
-          "Ref": "NATAZ2"
         }
       }
     },
@@ -490,28 +294,6 @@
           "Ref": "RouteTablePublic"
         }
       }
-    },
-    "RouteAssociationPrivateAZ1Default": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "SubnetId": {
-          "Ref": "PrivateSubnetAZ1"
-        },
-        "RouteTableId": {
-          "Ref": "RouteTablePrivateAZ1"
-        }
-      }
-    },
-    "RouteAssociationPrivateAZ2Default": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "SubnetId": {
-          "Ref": "PrivateSubnetAZ2"
-        },
-        "RouteTableId": {
-          "Ref": "RouteTablePrivateAZ2"
-        }
-      }
     }
   },
   "Outputs": {
@@ -531,30 +313,6 @@
       "Description": "Public Subnet in Availability Zone 2 - for Elastic Load Balancer",
       "Value": {
         "Ref": "PublicSubnetAZ2"
-      }
-    },
-    "outputSubnetPrivateAZ1": {
-      "Description": "Private Subnet in Availability Zone 1 - for Nginx instances",
-      "Value": {
-        "Ref": "PrivateSubnetAZ1"
-      }
-    },
-    "outputSubnetPrivateAZ2": {
-      "Description": "Private Subnet in Availability Zone 2 - for Nginx instances",
-      "Value": {
-        "Ref": "PrivateSubnetAZ2"
-      }
-    },
-    "outputNATGatewayPublicIPAZ1": {
-      "Description": "NAT Gateway 1 Public IP - outgoing traffic for Private Subnet AZ1",
-      "Value": {
-        "Ref": "NATAZ1IP"
-      }
-    },
-    "outputNATGatewayPublicIPAZ2": {
-      "Description": "NAT Gateway 2 Public IP - outgoing traffic for Private Subnet AZ2",
-      "Value": {
-        "Ref": "NATAZ2IP"
       }
     },
     "outputCodeDeployRoleArn": {
