@@ -65,11 +65,11 @@
         "VPCZoneIdentifier": { "Ref": "AppSubnet" },
         "LaunchConfigurationName": { "Ref": "LaunchConfig" },
         "MinSize": "2",
-        "MaxSize": "4",
+        "MaxSize": "2",
         "DesiredCapacity": "2",
-        "HealthCheckType": "ELB",
+        "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "60",
-        "TargetGroupARNs": [ { "Ref": "TCP80TargetGroup" }, { "Ref": "TCP443TargetGroup" } ]
+		"TargetGroupARNs": [{ "Ref": "TCP80TargetGroup" },{ "Ref": "TCP443TargetGroup" }]
       }
     },
     "LaunchConfig": {
@@ -262,85 +262,84 @@
         "ComparisonOperator": "LessThanThreshold"
       }
     },
-	 "FirstEIP": {
-	"Type": "AWS::EC2::EIP",
-    "Properties": {
-		"Domain": "vpc"
-    }
-},
- 	 "SecondEIP": {
-	"Type": "AWS::EC2::EIP",
-    "Properties": {
-        "Domain": "vpc"
-    }
-},
+	"FirstEIP": {
+		"Type": "AWS::EC2::EIP",
+		"Properties": {
+			"Domain": "vpc"
+		}
+	},
+ 	"SecondEIP": {
+		"Type": "AWS::EC2::EIP",
+		"Properties": {
+			"Domain": "vpc"
+		}
+	},
 	"NetworkLoadBalancer": {
-	"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-    "Properties": {
-		"Type":"network",
-		"Name": {
-          "Fn::Join": [
-            "",
-            [
-              "NLB-",
-              { "Ref": "AppGroupName" },
-              "-Group"
-            ]
-          ]
-        },
-        "SubnetMappings": [
-			{
-                "AllocationId": {
-                    "Fn::GetAtt": [
-                        "FirstEIP",
-                        "AllocationId"
-                    ]
-                },
-                "SubnetId": {
-					"Fn::Select" : [ 0, {"Ref": "NLBSubnet"} ] 
-                }
-            },
-            {
-                "AllocationId": {
-                    "Fn::GetAtt": [
-                        "SecondEIP",
-                        "AllocationId"
-                    ]
-                },
-                "SubnetId": {
-                   "Fn::Select" : [ 1, {"Ref": "NLBSubnet"} ]
-                }
-            }
-        ],
-        "Scheme": "internet-facing"
-	}
-},	
+		"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+		"Properties": {
+			"Type":"network",
+			"Name": {
+				"Fn::Join": [
+					"", [
+						"NLB-",
+						{ "Ref": "AppGroupName" },
+						"-Group"
+					]	
+				]
+			},
+			"SubnetMappings": [
+				{
+					"AllocationId": {
+						"Fn::GetAtt": [
+							"FirstEIP",
+							"AllocationId"
+						]
+					},
+					"SubnetId": {
+						"Fn::Select" : [ 0, {"Ref": "NLBSubnet"} ] 
+					}
+				},
+				{
+					"AllocationId": {
+						"Fn::GetAtt": [
+							"SecondEIP",
+							"AllocationId"
+						]
+					},
+					"SubnetId": {
+						"Fn::Select" : [ 1, {"Ref": "NLBSubnet"} ]
+					}
+				}
+			],
+			"Scheme": "internet-facing"
+		}
+	},	
 	"TCP80Listener": {
-	"Type": "AWS::ElasticLoadBalancingV2::Listener",
-	"Properties": {
-		"DefaultActions": [{
-			"Type": "forward",
-			"TargetGroupArn": { "Ref": "TCP80TargetGroup" }
-	}],
-	"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
-	"Port": "80",
-	"Protocol": "TCP"
-	}
-},
+		"Type": "AWS::ElasticLoadBalancingV2::Listener",
+		"Properties": {
+			"DefaultActions": [{
+				"Type": "forward",
+				"TargetGroupArn": { "Ref": "TCP80TargetGroup" }
+		}],
+		"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
+		"Port": "80",
+		"Protocol": "TCP"
+		}
+	},
 	"TCP443Listener": {
-	"Type": "AWS::ElasticLoadBalancingV2::Listener",
-	"Properties": {
-		"DefaultActions": [{
-			"Type": "forward",
-			"TargetGroupArn": { "Ref": "TCP443TargetGroup" }
-	}],
-	"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
-	"Port": "443",
-	"Protocol": "TCP"
-	}
-},
+		"Type": "AWS::ElasticLoadBalancingV2::Listener",
+		"Properties": {
+			"DefaultActions": [{
+				"Type": "forward",
+				"TargetGroupArn": { "Ref": "TCP443TargetGroup" }
+		}],
+		"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
+		"Port": "443",
+		"Protocol": "TCP"
+		}
+	},
 	"TCP80TargetGroup" : {
-	"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
 		"Properties" : {
 		"HealthCheckIntervalSeconds" : 30,
 		"HealthyThresholdCount" : 3,
@@ -348,43 +347,22 @@
 		"Port" : 80,
 		"Protocol" : "TCP",
 		"VpcId" : { "Ref": "VPCId" }
-	}
-},
+		}
+	},
 	"TCP443TargetGroup" : {
-	"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
 		"Properties" : {
-		"HealthCheckIntervalSeconds" : 30,
-		"HealthyThresholdCount" : 3,
-		"UnhealthyThresholdCount" : 3,
-		"Port" : 443,
-		"Protocol" : "TCP",
-		"VpcId" : { "Ref": "VPCId" }
-	}
-},
-    "NLBSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Enable HTTP access on the configured port",
-        "VpcId": { "Ref": "VPCId" },
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
-    },
+			"HealthCheckIntervalSeconds" : 30,
+			"HealthyThresholdCount" : 3,
+			"UnhealthyThresholdCount" : 3,
+			"Port" : 443,
+			"Protocol" : "TCP",
+			"VpcId" : { "Ref": "VPCId" }
+		}
+	},
     "InstanceSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
+		"Type": "AWS::EC2::SecurityGroup",
+		"Properties": {
         "GroupDescription": "Allows SSH from Q4 HQ and HTTP from anywhere",
         "VpcId": { "Ref": "VPCId" },
         "Tags": [
@@ -419,12 +397,6 @@
             "FromPort": "80",
             "ToPort": "80",
             "CidrIp" : "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "8000",
-            "ToPort": "8000",
-            "SourceSecurityGroupId": { "Ref": "NLBSecurityGroup" }
           }
         ]
       }
@@ -551,12 +523,6 @@
       "Description": "Nginx Elastic Load Balancer",
       "Value": {
         "Ref": "NetworkLoadBalancer"
-      }
-    },
-    "outputNLBSG": {
-      "Description": "Nginx Elastic Load Balancer Security Group",
-      "Value": {
-        "Ref": "NLBSecurityGroup"
       }
     }
   },
