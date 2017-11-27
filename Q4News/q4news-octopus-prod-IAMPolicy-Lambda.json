@@ -6,30 +6,40 @@
       "Action": [
         "lambda:AddPermission",
         "lambda:CreateAlias",
-        "lambda:CreateEventSourceMapping",
-        "lambda:CreateFunction",
-        "lambda:GetAccountSettings",
         "lambda:GetAlias",
-        "lambda:GetEventSourceMapping",
         "lambda:GetFunction",
         "lambda:GetFunctionConfiguration",
         "lambda:GetPolicy",
         "lambda:ListAliases",
-        "lambda:ListEventSourceMappings",
-        "lambda:ListFunctions",
         "lambda:ListVersionsByFunction",
         "lambda:PublishVersion",
         "lambda:RemovePermission",
         "lambda:UpdateAlias",
-        "lambda:UpdateEventSourceMapping",
         "lambda:UpdateFunctionCode",
-        "lambda:UpdateFunctionConfiguration"
+        "lambda:ListTags",
+        "lambda:TagResource",
+        "lambda:UntagResource"
       ],
       "Effect": "Allow",
       "Resource": [
         "arn:aws:lambda:us-east-1:632976446797:function:newsservice-prod*",
         "arn:aws:lambda:us-east-1:632976446797:function:euro-news-prod*"
       ]
-    } 
+    },
+    {
+      "Sid": "NonResourceLevelPermissions",
+      "Action": [
+        "lambda:ListEventSourceMappings",
+        "lambda:ListFunctions",
+        "lambda:GetAccountSettings",
+        "lambda:GetEventSourceMapping",
+        "lambda:CreateEventSourceMapping",
+        "lambda:CreateFunction",
+        "lambda:UpdateEventSourceMapping",
+        "lambda:UpdateFunctionConfiguration"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
   ]
 }
