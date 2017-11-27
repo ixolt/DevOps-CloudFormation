@@ -38,10 +38,10 @@
   },
   "Mappings": {
     "EncryptedUbuntuAMI": {
-      "us-east-1": { "Stage": "ami-7d607006", "DR": "ami-d81606a3"},
-      "us-east-2": { "Stage": "ami-af6d4fca", "DR": "ami-f586a490" },
-      "us-west-2": { "DR": "ami-726d990a" },
-      "ca-central-1": { "Stage": "ami-0009b764" }
+      "us-east-1": { "Q4WebStage": "ami-7d607006", "Q4WebProd": "ami-d81606a3"},
+      "us-east-2": { "Q4WebStage": "ami-af6d4fca", "Q4WebProd": "ami-f586a490" },
+      "us-west-2": { "Q4WebProd": "ami-726d990a" },
+      "ca-central-1": { "Q4WebStage": "ami-0009b764" }
     }
   },
   "Resources": {
@@ -341,17 +341,19 @@
 	"TCP80TargetGroup" : {
 		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
 		"Properties" : {
-		"HealthCheckIntervalSeconds" : 30,
-		"HealthyThresholdCount" : 3,
-		"UnhealthyThresholdCount" : 3,
-		"Port" : 80,
-		"Protocol" : "TCP",
-		"VpcId" : { "Ref": "VPCId" }
+			"HealthCheckPort": 8000,
+			"HealthCheckIntervalSeconds" : 30,
+			"HealthyThresholdCount" : 3,
+			"UnhealthyThresholdCount" : 3,
+			"Port" : 80,
+			"Protocol" : "TCP",
+			"VpcId" : { "Ref": "VPCId" }
 		}
 	},
 	"TCP443TargetGroup" : {
 		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
 		"Properties" : {
+			"HealthCheckPort": 8000,
 			"HealthCheckIntervalSeconds" : 30,
 			"HealthyThresholdCount" : 3,
 			"UnhealthyThresholdCount" : 3,
@@ -397,6 +399,12 @@
             "FromPort": "80",
             "ToPort": "80",
             "CidrIp" : "0.0.0.0/0"
+          },
+		  {
+            "IpProtocol": "tcp",
+            "FromPort": "8000",
+            "ToPort": "8000",
+            "CidrIp" : "10.100.0.0/16"
           }
         ]
       }
