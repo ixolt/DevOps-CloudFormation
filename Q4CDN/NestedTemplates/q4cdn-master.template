@@ -13,13 +13,12 @@
 		"ConstraintDescription": "Must be either 'default' for multi-tenant hypervisor or 'dedicated' for single tenant hypervisor."
     },
 	"AWSAccount": {
-		"Description": "What AWS account will this be launched in? (Stage, Prod, DR)",
+		"Description": "What AWS account will this be launched in? (Q4WebStage, Q4WebProd)",
 		"Type": "String",
-		"Default": "Stage",
+		"Default": "Q4WebStage",
 		"AllowedValues": [
-			"Stage",
-			"Prod",
-			"DR"
+			"Q4WebStage",
+			"Q4WebProd"
 		]
     },
     "InstanceType": {
@@ -71,8 +70,15 @@
 		"Default": "ContentCache"
     },
     "AppEnvironment": {
-		"Description": "What environment will this be launched in? (dev, test, stage, prod, dr)",
-		"Type": "String"
+		"Description": "What environment will this be launched in? (dev, test, stage, prod)",
+		"Type": "String",
+		"Default": "stage",
+		"AllowedValues": [
+			"dev",
+			"test",
+			"stage",
+			"prod"
+		]
     },
     "BackEnd": {
 		"Type": "String",

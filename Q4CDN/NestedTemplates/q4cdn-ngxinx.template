@@ -38,10 +38,10 @@
   },
   "Mappings": {
     "EncryptedUbuntuAMI": {
-      "us-east-1": { "Stage": "ami-7d607006", "DR": "ami-d81606a3"},
-      "us-east-2": { "Stage": "ami-af6d4fca", "DR": "ami-f586a490" },
-      "us-west-2": { "DR": "ami-726d990a" },
-      "ca-central-1": { "Stage": "ami-0009b764" }
+		"us-east-1": { "Q4WebStage": "ami-7d607006", "Q4WebProd": "ami-d81606a3"},
+		"us-east-2": { "Q4WebStage": "ami-af6d4fca", "Q4WebProd": "ami-f586a490" },
+		"us-west-2": { "Q4WebProd": "ami-726d990a" },
+		"ca-central-1": { "Q4WebStage": "ami-0009b764" }
     },
 	"ELBAccountID": {
 		"us-east-1": {"AWSAccountID": "127311923021"},
