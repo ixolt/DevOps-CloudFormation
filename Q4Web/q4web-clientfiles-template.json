@@ -1,0 +1,170 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "IAM cli user, S3 buckets for client files.",
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Billing Tags"
+                    },
+                    "Parameters": [
+                        "BillingGroup"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+                "BillingGroup": {
+                    "default": "Billing Tag"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "BillingGroup": {
+            "Description": "A unique string that will be used to group all resources for billing (ex: Q4WEB-DR-NA, Q4WEB-PROD-EU)",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "CLIUser": {
+            "Type": "AWS::IAM::User",
+            "Properties": {
+                "Path": "/",
+                "UserName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "q4web",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            "clientfiles",
+                            "user"
+                        ]
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "clientfilesaccess",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:s3:::q4live.s1.eu.clientfiles"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:s3:::q4live.s1.eu.clientfiles/*"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "cloudfront:CreateInvalidation",
+                                        "cloudfront:ListDistributions"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:ListAllMyBuckets"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "CLIUserAccessKey": {
+            "Type": "AWS::IAM::AccessKey",
+            "Properties": {
+                "UserName": {
+                    "Ref": "CLIUser"
+                }
+            }
+        },
+        "ClientFilesBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": "q4live.s1.eu.clientfiles",
+                "Tags": [
+                    {
+                        "Key": "q4:Billing:Group",
+                        "Value": {
+                            "Ref": "BillingGroup"
+                        }
+                    }
+                ]
+            }
+        },
+        "ClientFilesBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "Bucket": {
+                    "Ref": "ClientFilesBucket"
+                },
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": "*"
+                            },
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "ClientFilesBucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "CLIAccessKey": {
+            "Value": {
+                "Ref": "CLIUserAccessKey"
+            }
+        },
+        "CLIAccessKeySecret": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "CLIUserAccessKey",
+                    "SecretAccessKey"
+                ]
+            }
+        },
+        "ClientFilesBucket": {
+            "Value": {
+                "Ref": "ClientFilesBucket"
+            }
+        }
+    }
+}
