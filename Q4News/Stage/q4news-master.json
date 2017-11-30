@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4devops-cf-templates bucket.",
+   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4devops-cfn-templates bucket.",
    "Parameters": {
     "InstanceTenancy": {
       "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
@@ -89,7 +89,7 @@
     "VPC": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/q4devops-cf-templates/q4news-vpc.json",
+        "TemplateURL": "https://s3.amazonaws.com/q4devops-cfn-templates/q4news/q4news-vpc.json",
         "Parameters": {
           "InstanceTenancy": { "Ref": "InstanceTenancy" },
           "Environment": { "Ref": "Environment" }
@@ -100,7 +100,7 @@
     "EC2": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/q4devops-cf-templates/q4news-ec2.json",
+        "TemplateURL": "https://s3.amazonaws.com/q4devops-cfn-templates/q4news/q4news-ec2.json",
         "Parameters": {
           "Environment": { "Ref": "Environment" },
           "VPCID": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] },
@@ -125,9 +125,9 @@
     "RDS": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/q4devops-cf-templates/q4news-rds.json",
+        "TemplateURL": "https://s3.amazonaws.com/q4devops-cfn-templates/q4news/q4news-rds.json",
         "Parameters": {
-          "Environment": { "Ref": "Environment" },         
+          "Environment": { "Ref": "Environment" },
           "VPCID": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] },
           "AppSubnets": {
             "Fn::Join": [
