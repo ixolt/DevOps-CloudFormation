@@ -95,32 +95,8 @@
         },
         "NetworkInterfaces": [
           {
-            "DeviceIndex": "0",
-            "GroupSet": [
-              {
-                "Ref": "InstanceSecurityGroup"
-              }
-            ],
-            "SubnetId": {
-              "Fn::Select": [
-                "0",
-                { "Ref": "AppSubnet" }
-              ]
-            }
-          },
-          {
-            "DeviceIndex": "1",
-            "GroupSet": [
-              {
-                "Ref": "InstanceSecurityGroup"
-              }
-            ],
-            "SubnetId": {
-              "Fn::Select": [
-                "0",
-                { "Ref": "AppSubnet" }
-              ]
-            }
+            "NetworkInterfaceId": { "Ref": "NetworkInterface" },
+            "DeviceIndex": "0"
           }
         ],
         "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
