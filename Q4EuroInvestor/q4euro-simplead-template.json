@@ -40,6 +40,7 @@
     },
     "DirectoryAdminPassword": {
       "Type": "String",
+      "NoEcho": "true",
       "Description": "The password for the auto generated Administrator account"
     },
     "DirectoryVPCID": {
