@@ -31,8 +31,8 @@
       ],
       "Effect": "Allow",
       "Resource": [
-        "arn:aws:iam::632976446797:policy/*",
-        "arn:aws:iam::632976446797:role/*"
+        "arn:aws:iam::200817507011:policy/*",
+        "arn:aws:iam::200817507011:role/*"
       ]
     }
   ]
