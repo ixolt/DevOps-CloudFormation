@@ -70,14 +70,15 @@
 		"Default": "ContentCache"
     },
     "AppEnvironment": {
-		"Description": "What environment will this be launched in? (dev, test, stage, prod)",
+		"Description": "What environment will this be launched in? (dev, test, stage, prod, prod-eu)",
 		"Type": "String",
 		"Default": "stage",
 		"AllowedValues": [
 			"dev",
 			"test",
 			"stage",
-			"prod"
+			"prod",
+			"prod-eu"
 		]
     },
     "BackEnd": {
@@ -88,10 +89,11 @@
 			"dev",
 			"stage",
 			"dr",
-			"prod"
+			"prod",
+			"prod-eu"
 		],
 		"ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
-		"Description": "Select backend environment: dev, test, stage, prod"
+		"Description": "Select backend environment: dev, test, stage, prod or prod-eu"
     },
     "SSHLocation": {
 		"Description": "The IP address range that can be used to SSH to the Nginx instances",
