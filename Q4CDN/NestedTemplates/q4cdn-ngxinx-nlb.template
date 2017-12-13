@@ -11,12 +11,12 @@
     "SSHKeyPair": {
       "Type": "String"
     },
-	"NLBSubnet": {
-		"Type": "CommaDelimitedList"	
-	},
-	"AppSubnet": {
-		"Type": "CommaDelimitedList"
-	},
+    "NLBSubnet": {
+      "Type": "CommaDelimitedList"
+    },
+    "AppSubnet": {
+      "Type": "CommaDelimitedList"
+    },
     "AppGroupName": {
       "Type": "String"
     },
@@ -32,20 +32,33 @@
     "SplunkAdminPassword": {
       "Type": "String"
     },
-	"VPCId": {
-	  "Type": "String"
-	}
+    "VPCId": {
+      "Type": "String"
+    }
   },
   "Mappings": {
     "EncryptedUbuntuAMI": {
-		"us-east-1": { "Q4WebStage": "ami-7d607006", "Q4WebProd": "ami-d81606a3"},
-		"us-east-2": { "Q4WebStage": "ami-af6d4fca", "Q4WebProd": "ami-f586a490" },
-		"us-west-2": { "Q4WebProd": "ami-726d990a" },
-		"ca-central-1": { "Q4WebStage": "ami-0009b764" }
+      "us-east-1": {
+        "Q4WebStage": "ami-7d607006",
+        "Q4WebProd": "ami-d81606a3"
+      },
+      "us-east-2": {
+        "Q4WebStage": "ami-af6d4fca",
+        "Q4WebProd": "ami-f586a490"
+      },
+      "us-west-2": {
+        "Q4WebProd": "ami-726d990a"
+      },
+      "ca-central-1": {
+        "Q4WebStage": "ami-0009b764"
+      },
+      "eu-west-1": {
+        "Q4WebProd": "ami-9c58dce5"
+      }
     }
   },
   "Resources": {
-	"ServerGroup": {
+    "ServerGroup": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "CreationPolicy": {
         "ResourceSignal": {
@@ -62,29 +75,52 @@
         }
       },
       "Properties": {
-        "VPCZoneIdentifier": { "Ref": "AppSubnet" },
-        "LaunchConfigurationName": { "Ref": "LaunchConfig" },
+        "VPCZoneIdentifier": {
+          "Ref": "AppSubnet"
+        },
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfig"
+        },
         "MinSize": "2",
         "MaxSize": "2",
         "DesiredCapacity": "2",
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "60",
-		"TargetGroupARNs": [{ "Ref": "TCP80TargetGroup" },{ "Ref": "TCP443TargetGroup" }]
+        "TargetGroupARNs": [
+          {
+            "Ref": "TCP80TargetGroup"
+          },
+          {
+            "Ref": "TCP443TargetGroup"
+          }
+        ]
       }
     },
     "LaunchConfig": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "KeyName": { "Ref": "SSHKeyPair" },
+        "KeyName": {
+          "Ref": "SSHKeyPair"
+        },
         "ImageId": {
           "Fn::FindInMap": [
             "EncryptedUbuntuAMI",
-            { "Ref": "AWS::Region" },
-            {"Ref": "AWSAccount"}
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Ref": "AWSAccount"
+            }
           ]
         },
-        "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
-        "InstanceType": { "Ref": "InstanceType" },
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -101,46 +137,94 @@
               [
                 "#!/bin/bash -ex \n",
                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 \n",
-
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-nginx.sh | bash\n",
-                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-", { "Ref": "BackEnd" }, ".conf", "\n",
+                "curl -o /etc/nginx/backend.conf https://raw.githubusercontent.com/q4mobile/DevOps-NginxConfiguration/master/backend-",
+                {
+                  "Ref": "BackEnd"
+                },
+                ".conf",
+                "\n",
                 "sudo service nginx restart \n",
-
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-codedeploy-agent.sh | bash\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-aws-tools.sh | bash\n",
-
                 "instanceid=\"`wget -qO- http://instance-data/latest/meta-data/instance-id`\"\n",
                 "region=\"`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\\([0-9][0-9]*\\)[a-z]*\\$:\\\\1:'`\"\n",
-                "tag=Q4Web-", { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n", "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
-
+                "tag=Q4Web-",
+                {
+                  "Ref": "AppEnvironment"
+                },
+                "-",
+                {
+                  "Ref": "AppGroupName"
+                },
+                "-$region-$instanceid\n",
+                "aws ec2 create-tags --resources $instanceid --tags Key=Name,Value=$tag --region $region\n",
                 "hostnamectl set-hostname Q4Web-",
-                { "Ref": "AppEnvironment" }, "-", { "Ref": "AppGroupName" }, "-$region-$instanceid\n",
-
+                {
+                  "Ref": "AppEnvironment"
+                },
+                "-",
+                {
+                  "Ref": "AppGroupName"
+                },
+                "-$region-$instanceid\n",
                 "curl -sL https://raw.githubusercontent.com/q4mobile/DevOps-Configuration/master/bootstrap/setup-newrelic.sh | bash\n",
-
                 "sudo wget -O splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version=6.6.3&product=universalforwarder&filename=splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb&wget=true' && sudo dpkg -i splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-amd64.deb\n",
                 "sudo wget -O /opt/splunkclouduf.spl https://github.com/q4mobile/DevOps-Configuration/blob/chrisj-devops-4073/bootstrap/splunkclouduf.spl?raw=true\n",
-
                 "sudo /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt\n",
-                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password ", {"Ref": "SplunkAdminPassword"}, " -auth admin:changeme\n",
-                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:", {"Ref": "SplunkAdminPassword"}, "\n",
-                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -sourcetype nginx-",{"Ref":"AppEnvironment"}," -index q4webcdn -auth admin:", {"Ref":"SplunkAdminPassword"} ,"\n",
+                "sudo /opt/splunkforwarder/bin/splunk edit user admin -password ",
+                {
+                  "Ref": "SplunkAdminPassword"
+                },
+                " -auth admin:changeme\n",
+                "sudo /opt/splunkforwarder/bin/splunk install app /opt/splunkclouduf.spl -auth admin:",
+                {
+                  "Ref": "SplunkAdminPassword"
+                },
+                "\n",
+                "sudo /opt/splunkforwarder/bin/splunk add monitor /var/log/nginx/ -sourcetype nginx-",
+                {
+                  "Ref": "AppEnvironment"
+                },
+                " -index q4webcdn -auth admin:",
+                {
+                  "Ref": "SplunkAdminPassword"
+                },
+                "\n",
                 "sudo /opt/splunkforwarder/bin/splunk enable boot-start\n",
                 "sudo /opt/splunkforwarder/bin/splunk restart\n\n",
-
-                "/usr/local/bin/cfn-init -v --stack ", { "Ref": "AWS::StackName" }, " --resource LaunchConfig --configsets nginx_install --region ", { "Ref": "AWS::Region" }, "\n",
-                "/usr/local/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" }, " --resource ServerGroup  --region ", { "Ref": "AWS::Region" }, "\n"
-
+                "/usr/local/bin/cfn-init -v --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource LaunchConfig --configsets nginx_install --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "/usr/local/bin/cfn-signal -e $? --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --resource ServerGroup  --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
               ]
             ]
           }
         },
-        "IamInstanceProfile": { "Ref": "InstanceProfile" }
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        }
       },
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets": {
-            "nginx_install": [ "install_cfn" ]
+            "nginx_install": [
+              "install_cfn"
+            ]
           },
           "install_cfn": {
             "files": {
@@ -150,8 +234,16 @@
                     "",
                     [
                       "[main]\n",
-                      "stack=", { "Ref": "AWS::StackId" }, "\n",
-                      "region=", { "Ref": "AWS::Region" }, "\n"
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
                     ]
                   ]
                 },
@@ -169,11 +261,15 @@
                       "path=Resources.ServerGroup.Metadata.AWS::CloudFormation::Init\n",
                       "action=/usr/local/bin/cfn-init -v ",
                       "         --stack ",
-                      { "Ref": "AWS::StackName" },
+                      {
+                        "Ref": "AWS::StackName"
+                      },
                       "         --resource LaunchConfig ",
                       "         --configsets nginx_install ",
                       "         --region ",
-                      { "Ref": "AWS::Region" },
+                      {
+                        "Ref": "AWS::Region"
+                      },
                       "\n"
                     ]
                   ]
@@ -188,7 +284,10 @@
                 "cfn-hup": {
                   "enabled": "true",
                   "ensureRunning": "true",
-                  "files": [ "/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf" ]
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
                 }
               }
             }
@@ -200,7 +299,9 @@
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": { "Ref": "ServerGroup" },
+        "AutoScalingGroupName": {
+          "Ref": "ServerGroup"
+        },
         "Cooldown": "60",
         "ScalingAdjustment": "1"
       }
@@ -209,7 +310,9 @@
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": { "Ref": "ServerGroup" },
+        "AutoScalingGroupName": {
+          "Ref": "ServerGroup"
+        },
         "Cooldown": "60",
         "ScalingAdjustment": "-1"
       }
@@ -232,7 +335,9 @@
         "Dimensions": [
           {
             "Name": "AutoScalingGroupName",
-            "Value": { "Ref": "ServerGroup" }
+            "Value": {
+              "Ref": "ServerGroup"
+            }
           }
         ],
         "ComparisonOperator": "GreaterThanThreshold"
@@ -256,117 +361,150 @@
         "Dimensions": [
           {
             "Name": "AutoScalingGroupName",
-            "Value": { "Ref": "ServerGroup" }
+            "Value": {
+              "Ref": "ServerGroup"
+            }
           }
         ],
         "ComparisonOperator": "LessThanThreshold"
       }
     },
-	"FirstEIP": {
-		"Type": "AWS::EC2::EIP",
-		"Properties": {
-			"Domain": "vpc"
-		}
-	},
- 	"SecondEIP": {
-		"Type": "AWS::EC2::EIP",
-		"Properties": {
-			"Domain": "vpc"
-		}
-	},
-	"NetworkLoadBalancer": {
-		"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-		"Properties": {
-			"Type":"network",
-			"Name": {
-				"Fn::Join": [
-					"", [
-						"NLB-",
-						{ "Ref": "AppGroupName" },
-						"-Group"
-					]	
-				]
-			},
-			"SubnetMappings": [
-				{
-					"AllocationId": {
-						"Fn::GetAtt": [
-							"FirstEIP",
-							"AllocationId"
-						]
-					},
-					"SubnetId": {
-						"Fn::Select" : [ 0, {"Ref": "NLBSubnet"} ] 
-					}
-				},
-				{
-					"AllocationId": {
-						"Fn::GetAtt": [
-							"SecondEIP",
-							"AllocationId"
-						]
-					},
-					"SubnetId": {
-						"Fn::Select" : [ 1, {"Ref": "NLBSubnet"} ]
-					}
-				}
-			],
-			"Scheme": "internet-facing"
-		}
-	},	
-	"TCP80Listener": {
-		"Type": "AWS::ElasticLoadBalancingV2::Listener",
-		"Properties": {
-			"DefaultActions": [{
-				"Type": "forward",
-				"TargetGroupArn": { "Ref": "TCP80TargetGroup" }
-		}],
-		"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
-		"Port": "80",
-		"Protocol": "TCP"
-		}
-	},
-	"TCP443Listener": {
-		"Type": "AWS::ElasticLoadBalancingV2::Listener",
-		"Properties": {
-			"DefaultActions": [{
-				"Type": "forward",
-				"TargetGroupArn": { "Ref": "TCP443TargetGroup" }
-		}],
-		"LoadBalancerArn": { "Ref": "NetworkLoadBalancer" },
-		"Port": "443",
-		"Protocol": "TCP"
-		}
-	},
-	"TCP80TargetGroup" : {
-		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
-		"Properties" : {
-			"HealthCheckPort": 8000,
-			"HealthCheckIntervalSeconds" : 30,
-			"HealthyThresholdCount" : 3,
-			"UnhealthyThresholdCount" : 3,
-			"Port" : 80,
-			"Protocol" : "TCP",
-			"VpcId" : { "Ref": "VPCId" }
-		}
-	},
-	"TCP443TargetGroup" : {
-		"Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
-		"Properties" : {
-			"HealthCheckPort": 8000,
-			"HealthCheckIntervalSeconds" : 30,
-			"HealthyThresholdCount" : 3,
-			"UnhealthyThresholdCount" : 3,
-			"Port" : 443,
-			"Protocol" : "TCP",
-			"VpcId" : { "Ref": "VPCId" }
-		}
-	},
+    "FirstEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "SecondEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NetworkLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "network",
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              "NLB-",
+              {
+                "Ref": "AppGroupName"
+              },
+              "-Group"
+            ]
+          ]
+        },
+        "SubnetMappings": [
+          {
+            "AllocationId": {
+              "Fn::GetAtt": [
+                "FirstEIP",
+                "AllocationId"
+              ]
+            },
+            "SubnetId": {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "NLBSubnet"
+                }
+              ]
+            }
+          },
+          {
+            "AllocationId": {
+              "Fn::GetAtt": [
+                "SecondEIP",
+                "AllocationId"
+              ]
+            },
+            "SubnetId": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "NLBSubnet"
+                }
+              ]
+            }
+          }
+        ],
+        "Scheme": "internet-facing"
+      }
+    },
+    "TCP80Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "TCP80TargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "NetworkLoadBalancer"
+        },
+        "Port": "80",
+        "Protocol": "TCP"
+      }
+    },
+    "TCP443Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "TCP443TargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "NetworkLoadBalancer"
+        },
+        "Port": "443",
+        "Protocol": "TCP"
+      }
+    },
+    "TCP80TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "HealthCheckPort": 8000,
+        "HealthCheckIntervalSeconds": 30,
+        "HealthyThresholdCount": 3,
+        "UnhealthyThresholdCount": 3,
+        "Port": 80,
+        "Protocol": "TCP",
+        "VpcId": {
+          "Ref": "VPCId"
+        }
+      }
+    },
+    "TCP443TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "HealthCheckPort": 8000,
+        "HealthCheckIntervalSeconds": 30,
+        "HealthyThresholdCount": 3,
+        "UnhealthyThresholdCount": 3,
+        "Port": 443,
+        "Protocol": "TCP",
+        "VpcId": {
+          "Ref": "VPCId"
+        }
+      }
+    },
     "InstanceSecurityGroup": {
-		"Type": "AWS::EC2::SecurityGroup",
-		"Properties": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
         "GroupDescription": "Allows SSH from Q4 HQ and HTTP from anywhere",
-        "VpcId": { "Ref": "VPCId" },
+        "VpcId": {
+          "Ref": "VPCId"
+        },
         "Tags": [
           {
             "Key": "Name",
@@ -374,7 +512,9 @@
               "Fn::Join": [
                 "",
                 [
-                  { "Ref": "AppGroupName" },
+                  {
+                    "Ref": "AppGroupName"
+                  },
                   "SG"
                 ]
               ]
@@ -386,25 +526,27 @@
             "IpProtocol": "tcp",
             "FromPort": "22",
             "ToPort": "22",
-            "CidrIp": { "Ref": "SSHLocation" }
+            "CidrIp": {
+              "Ref": "SSHLocation"
+            }
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "CidrIp" : "0.0.0.0/0"
+            "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "80",
             "ToPort": "80",
-            "CidrIp" : "0.0.0.0/0"
+            "CidrIp": "0.0.0.0/0"
           },
-		  {
+          {
             "IpProtocol": "tcp",
             "FromPort": "8000",
             "ToPort": "8000",
-            "CidrIp" : "10.100.0.0/16"
+            "CidrIp": "10.100.0.0/16"
           }
         ]
       }
@@ -416,8 +558,14 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
-              "Action": [ "sts:AssumeRole" ]
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
             }
           ]
         },
@@ -431,7 +579,9 @@
           "Fn::Join": [
             "-",
             [
-              { "Ref": "AppGroupName" },
+              {
+                "Ref": "AppGroupName"
+              },
               "Role"
             ]
           ]
@@ -509,14 +659,22 @@
             }
           ]
         },
-        "Roles": [ { "Ref": "InstanceRole" } ]
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
       }
     },
     "InstanceProfile": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
-        "Roles": [ { "Ref": "InstanceRole" } ]
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
       }
     }
   },
@@ -538,7 +696,9 @@
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
-          "Label": { "default": "EC2 Instance Configuration" },
+          "Label": {
+            "default": "EC2 Instance Configuration"
+          },
           "Parameters": [
             "InstanceType",
             "AppGroupName",
@@ -550,5 +710,5 @@
         }
       ]
     }
-  }    
-} 
+  }
+}
