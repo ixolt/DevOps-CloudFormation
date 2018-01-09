@@ -33,7 +33,8 @@
         "lambda:UpdateFunctionConfiguration",
         "lambda:ListTags",
         "lambda:TagResource",
-        "lambda:UntagResource"
+        "lambda:UntagResource",
+        "logs:CreateLogGroup"
       ],
       "Effect": "Allow",
       "Resource": "*"

@@ -8,6 +8,14 @@
       ],
       "Effect": "Allow",
       "Resource": "arn:aws:execute-api:us-east-1:200817507011:stage*/*/*/*"
+    },
+    {
+      "Action": [
+        "apigateway:GET"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+
     }
   ]
 }

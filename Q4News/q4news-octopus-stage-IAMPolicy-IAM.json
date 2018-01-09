@@ -27,7 +27,8 @@
         "iam:UpdateAssumeRolePolicy",
         "iam:UpdateGroup",
         "iam:UpdateLoginProfile",
-        "iam:UpdateUser"
+        "iam:UpdateUser",
+        "iam:DeleteRole"
       ],
       "Effect": "Allow",
       "Resource": [
