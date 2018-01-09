@@ -1,0 +1,640 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "**WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Parameters": {
+    "Environment": {
+      "Type":  "String"
+    },
+    "InstanceType": {
+      "Type": "String"
+    },
+    "VPCID": {
+      "Type": "String"
+    },
+    "AppSubnets": {
+      "Type": "CommaDelimitedList"
+    },
+    "KeyName": {
+      "Type": "String"
+    },
+    "APPGroupName": {
+      "Type": "String"
+    },
+    "OctopusEnvironment": {
+      "Type": "String"
+    },
+    "BootstrapScriptLocation": {
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+   "AWSRegionWinAMI": {
+    "us-east-1": {
+      "W2012R2": "ami-455f2b3f"
+    },
+    "us-east-2": {
+      "W2012R2": "ami-80765ae5"
+    },
+    "us-west-1": {
+      "W2012R2": "ami-955c6ef5"
+    },
+    "us-west-2": {
+      "W2012R2": "ami-862debfe"
+    },
+    "ca-central-1": {
+      "W2012R2": "ami-31e95155"
+    }     
+   }
+    },
+  "Resources": {
+    "ExternalIP01": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+    "ExternalIP02": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+    "AppSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access and FTP access on the configured port",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "20",
+            "ToPort": "21",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "50000",
+            "ToPort": "51000",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "10933",
+            "ToPort": "10933",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "AppSecurityGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RDSManagementSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable RDP access from anywhere.",
+        "VpcId": {
+          "Ref": "VPCID"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3389",
+            "ToPort": "3389",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "RDSManagementSecurityGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "NetworkInterface01": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "0",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "NetworkInterface02": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "1",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
+      }
+    },
+    "AssociateExternalIP01": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP01", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface01" }
+      }
+    },
+    "AssociateExternalIP02": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP02", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface02" }
+      }
+    },
+    "HealthCheckFTP01": {
+      "Type": "AWS::Route53::HealthCheck",
+      "Properties": {
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP01" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
+        },
+        "HealthCheckTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "news",
+                  {"Ref":"Environment"},
+                  "ftp1"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP01"
+    },
+    "HealthCheckFTP02": {
+      "Type": "AWS::Route53::HealthCheck",
+      "Properties": {
+        "HealthCheckConfig": {
+          "IPAddress": { "Ref": "ExternalIP02" },
+          "Port": "21",
+          "Type": "TCP",
+          "RequestInterval": "10",
+          "FailureThreshold": "3"
+        },
+        "HealthCheckTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "news",
+                  { "Ref": "Environment" },
+                  "ftp2"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "ExternalIP02"
+    },
+    "DNSRecords": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneId": "Z136THMFRHG6BI",
+        "Comment": "Failover Resource Records for FTP instances.",
+        "RecordSets": [
+          {
+            "Name": "ftp-news.dev.q4app.net",
+            "Failover": "PRIMARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP01" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "Environment" },
+                  "FTP-Primary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP01" }
+          },
+          {
+            "Name": "ftp-news.dev.q4app.net",
+            "Failover": "SECONDARY",
+            "Type": "A",
+            "TTL": "300",
+            "ResourceRecords": [
+              { "Ref": "ExternalIP02" }
+            ],
+            "SetIdentifier": {
+              "Fn::Join": [
+                "-",
+                [
+                  "News",
+                  { "Ref": "Environment" },
+                  "FTP-Secondary"
+                ]
+              ]
+            },
+            "HealthCheckId": { "Ref": "HealthCheckFTP02" }
+          }
+        ]
+      },
+      "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
+    },
+    "DNSAlias" : {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneId": "Z136THMFRHG6BI",
+        "Comment": "DNS Alias for FTP endpoint.",
+        "RecordSets": [
+          {
+            "Name": "news.dev.q4app.net",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z136THMFRHG6BI",
+              "DNSName": "ftp-news.dev.q4app.net"
+            }
+          }
+        ]
+      }
+     },
+    "NewsServiceFTP01": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+          {
+            "NetworkInterfaceId": { "Ref": "NetworkInterface01" },
+            "DeviceIndex": "0"
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "80"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "newsservice",
+                  {"Ref":"Environment"},
+                  "ftp1"
+                ]
+              ]
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
+                "Rename-Computer -NewName News-FTP1 -Force -Restart",
+                "\n",
+                "</powershell> \n"                
+              ]
+            ]
+          }
+        },
+        "KeyName": { "Ref": "KeyName" }
+      }
+    },
+    "NewsServiceFTP02": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+          {
+            "NetworkInterfaceId": { "Ref": "NetworkInterface02" },
+            "DeviceIndex": "0"
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceRoleInstanceProfile" },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "80"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "newsservice",
+                  { "Ref": "Environment" },
+                  "ftp2"
+                ]
+              ]
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Read-S3Object -BucketName ",
+                { "Ref": "BootstrapScriptLocation" },
+                " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"",
+                { "Ref": "OctopusEnvironment" },
+                "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
+                "Rename-Computer -NewName News-FTP2 -Force -Restart",
+                "\n",
+                "</powershell> \n"
+              ]
+            ]
+          }
+        },
+        "KeyName": { "Ref": "KeyName" }
+      }
+    },
+    "RDSManagement": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionWinAMI",
+            { "Ref": "AWS::Region" },
+            "W2012R2"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "RDSManagementSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Fn::Select": [
+                "0",
+                { "Ref": "AppSubnets" }
+              ]
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": { 
+              "VolumeSize": "50" 
+            }
+          }
+        ],
+        "Tags":
+          [
+            {
+              "Key": "Name",
+              "Value": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "rds-management",
+                    {"Ref":"Environment"}
+                  ]
+                ]
+              }
+            }
+          ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key RDSMgmt-Bootstrap.ps1 -File RDSMgmt-Bootstrap.ps1 \n",
+                ".\\RDSMgmt-Bootstrap.ps1 \n",
+                "Rename-Computer -NewName RDSMgmt -Force -Restart",
+                "\n",
+                "</powershell> \n"                
+              ]
+            ]
+          }
+        },
+        "KeyName":{ "Ref": "KeyName" }
+      }
+    },
+    "InstanceRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [
+                    "ec2.amazonaws.com"
+                  ]
+                },
+                "Action": [
+                  "sts:AssumeRole"
+                ]
+              }
+            ]
+          },
+          "Path": "/"
+        }
+      },
+    "InstanceRolePolicies": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyName": {
+            "Fn::Join": [
+              "-",
+              [
+                {
+                  "Ref": "APPGroupName"
+                },
+                "Role"
+              ]
+            ]
+          },
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:Describe*"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ssm:DescribeAssociation",
+                  "ssm:GetDocument",
+                  "ssm:ListAssociations",
+                  "ssm:CreateAssociation",
+                  "ssm:UpdateAssociationStatus",
+                  "ssm:UpdateInstanceInformation"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2messages:AcknowledgeMessage",
+                  "ec2messages:DeleteMessage",
+                  "ec2messages:FailMessage",
+                  "ec2messages:GetEndpoint",
+                  "ec2messages:GetMessages",
+                  "ec2messages:SendReply"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:*"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ds:CreateComputer",
+                  "ds:DescribeDirectories"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:DescribeLogGroups",
+                  "logs:DescribeLogStreams",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:PutObject",
+                  "s3:Get*",
+                  "s3:AbortMultipartUpload",
+                  "s3:ListMultipartUploadParts",
+                  "s3:ListBucketMultipartUploads"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "Roles": [
+            {
+              "Ref": "InstanceRole"
+            }
+          ]
+        }
+      },
+    "InstanceRoleInstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+          "Path": "/",
+          "Roles": [
+            {
+              "Ref": "InstanceRole"
+            }
+          ]
+        }
+      }
+  },
+  "Outputs": {
+    "outputTFP1IP": {
+      "Description" : "Public IP of primary FTP server.",
+      "Value": {
+        "Ref": "ExternalIP01"
+      }
+    },
+    "outputFTP2IP": {
+      "Description" : "Public IP of secondary (backup) FTP server.",
+      "Value": {
+        "Ref": "ExternalIP02"
+      }
+    }
+  }
+}

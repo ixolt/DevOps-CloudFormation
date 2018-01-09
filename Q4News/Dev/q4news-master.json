@@ -1,0 +1,187 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4devops-cfn-templates bucket.",
+   "Parameters": {
+    "InstanceTenancy": {
+      "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
+      "Type": "String",
+      "Default": "default",
+      "AllowedValues": [
+        "default",
+        "dedicated"
+      ],
+      "ConstraintDescription": "Must be either 'default' for multi-tenant hypervisor or 'dedicated' for single tenant hypervisor."
+    },
+    "Environment": {
+      "Description": "Application environment for which this network is being created. e.g. dev, prod",
+      "Type": "String",
+      "Default": "dev",
+      "AllowedValues": [
+        "dev",
+        "prod",
+        "stage"
+      ]
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type. Default is t2.micro",
+      "Description": "Select instance type"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to decrypt RDP Administrator Password for the instances.",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "OctopusEnvironment": {
+      "Description": "The Octopus environment that this instance will be registered in.",
+      "Type": "String"
+    },
+    "BootstrapScriptLocation": {
+      "Description": "The S3 bucket name where Bootstrap.ps1 is located.",
+      "Type": "String"
+    },
+    "DBPassword": {
+      "Default": "PleaseChangeMe!",
+      "NoEcho": "true",
+      "Description" : "The database root account password.",
+      "Type": "String",
+      "MinLength": "8"
+    },
+    "DBClass" : {
+      "Default" : "db.t2.micro",
+      "Description" : "Database instance class.",
+      "Type" : "String",
+      "AllowedValues" : [ "db.t2.micro", "db.m1.small", "db.m1.large", "db.m1.xlarge", "db.m2.xlarge","db.m4.large" ],
+      "ConstraintDescription" : "must select a valid database instance type."
+    }
+  },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/q4-devops-cfn-templates/q4news/q4news-vpc.json",
+        "Parameters": {
+          "InstanceTenancy": { "Ref": "InstanceTenancy" },
+          "Environment": { "Ref": "Environment" }
+        },
+        "TimeoutInMinutes": "60"
+      }
+    },
+    "EC2": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/q4-devops-cfn-templates/q4news/q4news-ec2.json",
+        "Parameters": {
+          "Environment": { "Ref": "Environment" },
+          "VPCID": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] },
+          "InstanceType": { "Ref": "InstanceType" },
+          "AppSubnets": {
+            "Fn::Join": [
+              ",",
+              [
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ1" ] },
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPublicAZ2" ] }
+              ]
+            ]
+          },
+          "KeyName": { "Ref": "KeyName" },
+          "APPGroupName": "ftp",
+          "OctopusEnvironment": { "Ref": "OctopusEnvironment" },
+          "BootstrapScriptLocation": { "Ref": "BootstrapScriptLocation" }
+        },
+        "TimeoutInMinutes": "60"
+      }
+    },
+    "RDS": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/q4-devops-cfn-templates/q4news/q4news-rds.json",
+        "Parameters": {
+          "Environment": { "Ref": "Environment" },
+          "VPCID": { "Fn::GetAtt": [ "VPC", "Outputs.outputVPCID" ] },
+          "AppSubnets": {
+            "Fn::Join": [
+              ",",
+              [
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPrivateAZ1" ] },
+                { "Fn::GetAtt": [ "VPC", "Outputs.outputSubnetPrivateAZ2" ] }
+              ]
+            ]
+          },
+          "DBName": "newsservicedb",
+          "DBUsername": "root",
+          "DBPassword": { "Ref": "DBPassword" },
+          "DBClass": { "Ref": "DBClass" },
+          "DBAllocatedStorage": "100"
+        },
+        "TimeoutInMinutes": "60"
+      }
+    }
+  },
+  "Outputs": {
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+      {
+        "Label": { "default": "Environment Configuration" },
+        "Parameters": [
+          "InstanceTenancy",
+          "Environment"
+        ]
+      },
+      {
+        "Label": { "default": "EC2 Instance Configuration" },
+        "Parameters": [
+          "InstanceType",
+          "KeyName"
+        ]
+      },
+        {
+          "Label": { "default": "Octopus Deploy Configuration" },
+          "Parameters": [
+            "OctopusEnvironment",
+            "BootstrapScriptLocation"
+          ]
+        },
+       {
+        "Label": { "default": "PostgreSQL Instance Configuration" },
+        "Parameters": [
+          "DBClass",
+          "DBPassword"
+         ]
+       }
+    ]
+   }
+ }
+}
