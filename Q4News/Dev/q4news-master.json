@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4devops-cfn-templates bucket.",
+   "Description": "Q4News Master Stack. Calls multiple child CloudFormation templates from q4-devops-cfn-templates bucket.",
    "Parameters": {
     "InstanceTenancy": {
       "Description": "VPC default for single tenant (dedicated) vs multi-tenant (default) hypervisor. Overrides instance level tenancy option.",
