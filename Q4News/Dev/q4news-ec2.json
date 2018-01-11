@@ -30,7 +30,7 @@
   "Mappings": {
    "AWSRegionWinAMI": {
     "us-east-1": {
-      "W2012R2": "ami-455f2b3f"
+      "W2012R2": "ami-ce792ab4"
     },
     "us-east-2": {
       "W2012R2": "ami-80765ae5"
@@ -52,6 +52,11 @@
       "Properties": { "Domain": { "Ref": "VPCID" } }
     },
     "ExternalIP02": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": { "Domain": { "Ref": "VPCID" } }
+    },
+
+    "ExternalIP03": {
       "Type": "AWS::EC2::EIP",
       "Properties": { "Domain": { "Ref": "VPCID" } }
     },
@@ -163,6 +168,18 @@
         "GroupSet": [ { "Ref": "AppSecurityGroup" } ]
       }
     },
+    "NetworkInterface03": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "SubnetId": {
+          "Fn::Select": [
+            "0",
+            { "Ref": "AppSubnets" }
+          ]
+        },
+        "GroupSet": [ { "Ref": "RDSManagementSecurityGroup" } ]
+      }
+    },
     "AssociateExternalIP01": {
       "Type": "AWS::EC2::EIPAssociation",
       "Properties": {
@@ -175,6 +192,13 @@
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "ExternalIP02", "AllocationId" ] },
         "NetworkInterfaceId": { "Ref": "NetworkInterface02" }
+      }
+    },
+    "AssociateExternalIP03": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "ExternalIP03", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref": "NetworkInterface03" }
       }
     },
     "HealthCheckFTP01": {
@@ -195,7 +219,7 @@
                 "-",
                 [
                   "news",
-                  {"Ref":"Environment"},
+                  { "Ref": "Environment" },
                   "ftp1"
                 ]
               ]
@@ -283,7 +307,7 @@
       },
       "DependsOn": [ "HealthCheckFTP01", "HealthCheckFTP02" ]
     },
-    "DNSAlias" : {
+    "DNSAlias": {
       "Type": "AWS::Route53::RecordSetGroup",
       "Properties": {
         "HostedZoneId": "Z136THMFRHG6BI",
@@ -299,7 +323,7 @@
           }
         ]
       }
-     },
+    },
     "NewsServiceFTP01": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -336,7 +360,7 @@
                 "-",
                 [
                   "newsservice",
-                  {"Ref":"Environment"},
+                  { "Ref": "Environment" },
                   "ftp1"
                 ]
               ]
@@ -349,11 +373,15 @@
               "",
               [
                 "<powershell>\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
-                ".\\Bootstrap.ps1 -OctopusEnvironment \"", { "Ref": "OctopusEnvironment" }, "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
+                "Read-S3Object -BucketName ",
+                { "Ref": "BootstrapScriptLocation" },
+                " -Key Bootstrap.ps1 -File Bootstrap.ps1 \n",
+                ".\\Bootstrap.ps1 -OctopusEnvironment \"",
+                { "Ref": "OctopusEnvironment" },
+                "\" -OctopusMachineRole \"pr-upload-server\" -ServerConfigurationProject \"Uploader Service\" \n",
                 "Rename-Computer -NewName News-FTP1 -Force -Restart",
                 "\n",
-                "</powershell> \n"                
+                "</powershell> \n"
               ]
             ]
           }
@@ -441,187 +469,177 @@
         },
         "NetworkInterfaces": [
           {
-            "AssociatePublicIpAddress": "true",
-            "DeviceIndex": "0",
-            "GroupSet": [
-              {
-                "Ref": "RDSManagementSecurityGroup"
-              }
-            ],
-            "SubnetId": {
-              "Fn::Select": [
-                "0",
-                { "Ref": "AppSubnets" }
-              ]
-            }
+            "NetworkInterfaceId": { "Ref": "NetworkInterface03" },
+            "DeviceIndex": "0"
           }
         ],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
-            "Ebs": { 
-              "VolumeSize": "50" 
+            "Ebs": {
+              "VolumeSize": "50"
             }
           }
         ],
-        "Tags":
-          [
-            {
-              "Key": "Name",
-              "Value": {
-                "Fn::Join": [
-                  "-",
-                  [
-                    "rds-management",
-                    {"Ref":"Environment"}
-                  ]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  "rds-management",
+                  { "Ref": "Environment" }
                 ]
-              }
+              ]
             }
-          ],
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
                 "<powershell>\n",
-                "Read-S3Object -BucketName ", { "Ref": "BootstrapScriptLocation" }, " -Key RDSMgmt-Bootstrap.ps1 -File RDSMgmt-Bootstrap.ps1 \n",
+                "Read-S3Object -BucketName ",
+                { "Ref": "BootstrapScriptLocation" },
+                " -Key RDSMgmt-Bootstrap.ps1 -File RDSMgmt-Bootstrap.ps1 \n",
                 ".\\RDSMgmt-Bootstrap.ps1 \n",
                 "Rename-Computer -NewName RDSMgmt -Force -Restart",
                 "\n",
-                "</powershell> \n"                
+                "</powershell> \n"
               ]
             ]
           }
         },
-        "KeyName":{ "Ref": "KeyName" }
+        "KeyName": { "Ref": "KeyName" }
       }
     },
     "InstanceRole": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-          "AssumeRolePolicyDocument": {
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": [
-                    "ec2.amazonaws.com"
-                  ]
-                },
-                "Action": [
-                  "sts:AssumeRole"
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
                 ]
-              }
-            ]
-          },
-          "Path": "/"
-        }
-      },
-    "InstanceRolePolicies": {
-        "Type": "AWS::IAM::Policy",
-        "Properties": {
-          "PolicyName": {
-            "Fn::Join": [
-              "-",
-              [
-                {
-                  "Ref": "APPGroupName"
-                },
-                "Role"
+              },
+              "Action": [
+                "sts:AssumeRole"
               ]
-            ]
-          },
-          "PolicyDocument": {
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "cloudformation:Describe*"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "ssm:DescribeAssociation",
-                  "ssm:GetDocument",
-                  "ssm:ListAssociations",
-                  "ssm:CreateAssociation",
-                  "ssm:UpdateAssociationStatus",
-                  "ssm:UpdateInstanceInformation"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "ec2messages:AcknowledgeMessage",
-                  "ec2messages:DeleteMessage",
-                  "ec2messages:FailMessage",
-                  "ec2messages:GetEndpoint",
-                  "ec2messages:GetMessages",
-                  "ec2messages:SendReply"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "ec2:*"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "ds:CreateComputer",
-                  "ds:DescribeDirectories"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "logs:CreateLogGroup",
-                  "logs:CreateLogStream",
-                  "logs:DescribeLogGroups",
-                  "logs:DescribeLogStreams",
-                  "logs:PutLogEvents"
-                ],
-                "Resource": "*"
-              },
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "s3:PutObject",
-                  "s3:Get*",
-                  "s3:AbortMultipartUpload",
-                  "s3:ListMultipartUploadParts",
-                  "s3:ListBucketMultipartUploads"
-                ],
-                "Resource": "*"
-              }
-            ]
-          },
-          "Roles": [
-            {
-              "Ref": "InstanceRole"
             }
           ]
-        }
-      },
-    "InstanceRoleInstanceProfile": {
-        "Type": "AWS::IAM::InstanceProfile",
-        "Properties": {
-          "Path": "/",
-          "Roles": [
-            {
-              "Ref": "InstanceRole"
-            }
-          ]
-        }
+        },
+        "Path": "/"
       }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "APPGroupName"
+              },
+              "Role"
+            ]
+          ]
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:Describe*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ssm:DescribeAssociation",
+                "ssm:GetDocument",
+                "ssm:ListAssociations",
+                "ssm:CreateAssociation",
+                "ssm:UpdateAssociationStatus",
+                "ssm:UpdateInstanceInformation"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ds:CreateComputer",
+                "ds:DescribeDirectories"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:Get*",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceRoleInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    }
   },
   "Outputs": {
     "outputTFP1IP": {
