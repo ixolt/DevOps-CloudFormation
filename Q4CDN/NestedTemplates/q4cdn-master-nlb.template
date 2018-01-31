@@ -78,7 +78,8 @@
 			"test",
 			"stage",
 			"prod",
-			"prod-eu"
+			"prod-eu",
+			"prolexic"
 		]
     },
     "BackEnd": {
@@ -90,7 +91,8 @@
 			"stage",
 			"dr",
 			"prod",
-			"prod-eu"
+			"prod-eu",
+			"prolexic"
 		],
 		"ConstraintDescription": "Must be dev, test, stage or prod. Default is stage ",
 		"Description": "Select backend environment: dev, test, stage, prod or prod-eu"
