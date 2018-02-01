@@ -128,7 +128,7 @@
     "VPC": {
 		"Type": "AWS::CloudFormation::Stack",
 		"Properties": {
-			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-vpc.template",
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-us-east-1/ProlexicCDN/q4cdn-vpc.template",
 			"Parameters": {
 				"InstanceTenancy": { "Ref": "InstanceTenancy" }
 			},
@@ -138,7 +138,7 @@
 	"Nginx": {
 		"Type": "AWS::CloudFormation::Stack",
 		"Properties": {
-			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-ngxinx.template",
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-us-east-1/ProlexicCDN/q4cdn-ngxinx.template",
 			"Parameters": {
 				"AWSAccount": { "Ref": "AWSAccount" },
 				"InstanceType": {"Ref": "InstanceType"},
@@ -174,7 +174,7 @@
 	"CodePipeline": {
 		"Type": "AWS::CloudFormation::Stack",
 		"Properties": {
-			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-templates/q4cdn/q4cdn-codepipeline.template",
+			"TemplateURL": "https://s3.amazonaws.com/q4-devops-cf-us-east-1/ProlexicCDN/q4cdn-codepipeline.template",
 			"Parameters": {
 				"CodeDeployAutoScalingGroup": { "Fn::GetAtt": [ "Nginx", "Outputs.outputAutoScalingGroup" ]  },
 				"CodeDeployRoleArn": {"Fn::GetAtt": [ "VPC", "Outputs.outputCodeDeployRoleArn" ]},
