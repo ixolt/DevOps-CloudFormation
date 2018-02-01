@@ -46,6 +46,9 @@
         "Q4WebStage": "ami-af6d4fca",
         "Q4WebProd": "ami-f586a490"
       },
+	  "us-west-1":{
+		"Q4WebProd": "ami-12e2e172"
+	  },
       "us-west-2": {
         "Q4WebProd": "ami-726d990a"
       },
