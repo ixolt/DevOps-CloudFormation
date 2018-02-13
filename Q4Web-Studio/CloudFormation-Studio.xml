@@ -1,0 +1,86 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+	"Parameters" : {
+		"BucketName": {
+			"Description": "Name of S3Bucket",
+			"Type": "String",
+			"Default":"q4studio-dev"
+		},
+		"Environment": {
+			"Description": "Environment dev, stage, prod",
+			"Type": "String",
+			"AllowedValues" : ["dev", "stage", "prod"]
+ 		},
+		"Product": {
+			"Description": "Environment Studio",
+			"Type": "String",
+			"AllowedValues" : ["Studio"],
+			"Default":"Studio"
+ 		},
+		"Domain": {
+			"Description": "Public domain to access web site",
+			"Type": "String",
+			"AllowedValues" : ["studio-dev.q4inc.com", "studio-stage.q4inc.com", "studio-prod.q4inc.com"]
+ 		},
+		"SSLARN" : {
+			"Description": "Public domain SSL ARNto access web site: For Dev: arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b",
+			"Type": "String",
+			"AllowedValues" : ["arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b"],
+			"Default":"arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b"
+ 		}  
+		
+	},
+    "Resources": {
+        "S3WebBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+			    "BucketName": { "Ref": "BucketName" },
+                "WebsiteConfiguration": {
+                    "IndexDocument": "index.html",
+                    "ErrorDocument": "error.html"
+                },
+				"Tags" : [
+					{"Key" : "Product", "Value" : { "Fn::Join" : [ "", [ {"Ref": "Product"}, "-", {"Ref": "Environment"}  ]]} }
+					] 
+            }
+        },
+		"Q4StudioCloudFront": {
+		    "Type": "AWS::CloudFront::Distribution",
+		    "Properties": {
+				"DistributionConfig": {
+				"Aliases": [{ "Ref":"Domain" } ], 
+				"Origins": [
+					{
+						"DomainName": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, ".s3.amazonaws.com"  ]]},
+						"Id": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
+						"S3OriginConfig": { "OriginAccessIdentity" : "origin-access-identity/cloudfront/E23P00FH1NU8U2"	}
+					}
+					
+				],
+				"Enabled": "true",
+				"DefaultCacheBehavior": {
+					"Compress": "true",
+					"DefaultTTL": "60",
+					"AllowedMethods": [
+						"GET",
+						"HEAD",
+						"OPTIONS"
+					],
+					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
+					"ForwardedValues": {
+						"QueryString": "false",
+						"Cookies": {"Forward": "none"}
+					},
+					"ViewerProtocolPolicy": "allow-all"
+				},
+				"PriceClass": "PriceClass_All",
+				"ViewerCertificate": {
+					"AcmCertificateArn": { "Ref": "SSLARN" },
+					"SslSupportMethod" : "sni-only"
+					}
+				}
+			},
+			"DependsOn": ["S3WebBucket"]
+		}		
+	}
+}

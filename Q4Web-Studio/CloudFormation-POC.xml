@@ -1,0 +1,43 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+	"Parameters" : {
+		"BucketName": {
+			"Description": "Name of S3Bucket",
+			"Type": "String",
+			"Default":"q4studio-dev"
+		},
+		"Environment": {
+			"Description": "Environment dev, stage, prod",
+			"Type": "String",
+			"AllowedValues" : ["dev", "stage", "prod"]
+ 		},
+		"Product": {
+			"Description": "Environment Studio",
+			"Type": "String",
+			"AllowedValues" : ["Studio"],
+			"Default":"Studio"
+ 		},
+		"Domain": {
+			"Description": "Public domain to access web site",
+			"Type": "String",
+			"AllowedValues" : ["studio-dev.q4inc.com", "studio-stage.q4inc.com", "studio-prod.q4inc.com"]
+ 		} 
+	},
+    "Resources": {
+        "cloudfrontoriginaccessidentity": {
+            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            "Properties": {
+                "CloudFrontOriginAccessIdentityConfig": {
+                    "Comment": { "Fn::Join" : [ "", [ "access-identity-", {"Ref": "BucketName"}  ]]} 
+                }
+            }
+        }		
+	},
+	"Outputs" : {
+		"CloudFrontOriginAccessIdentity" : {
+			"Description": "CloudFrontOriginAccessIdentity",  
+			"Value" : {  "Fn::GetAtt": [ "cloudfrontoriginaccessidentity" , "OriginAccessId" ]	}
+		}
+	}
+}	
+
