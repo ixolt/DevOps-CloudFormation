@@ -1,0 +1,79 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+	"Parameters" : {
+		"Environment": {
+			"Description": "Environment dev, stage, prod",
+			"Type": "String",
+			"AllowedValues" : ["dev", "stage", "prod"]
+ 		},
+		"Domain": {
+			"Description": "Public domain to access web site",
+			"Type": "String",
+			"AllowedValues" : ["q4app.net"]
+ 		},
+		"RepositoryName": {
+			"Description": "The name of the repository i.e. iris-widgets",
+			"Type": "String"
+		},
+		"SSLCertificateARN": {
+			"Description": "SSL certificate ARN",
+			"Type": "String",
+			"AllowedValues" : ["arn:aws:acm:us-east-1:632976446797:certificate/ac66814c-3e21-41e5-87bf-e31a59642d0a"],
+			"Default": "arn:aws:acm:us-east-1:632976446797:certificate/ac66814c-3e21-41e5-87bf-e31a59642d0a"
+		},
+		"S3OriginAccessIdentity": {
+			"Description": "S3 Origin Access Identity",
+			"Type": "String",
+			"AllowedValues": ["origin-access-identity/cloudfront/E6U6LX872CMG2"],
+			"Default": "origin-access-identity/cloudfront/E6U6LX872CMG2"
+		}
+	},
+    "Resources": {
+        "Q4IrisWidgetsS3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+				"Tags" : [
+					{"Key" : "Product", "Value" : { "Fn::Join" : [ "", [ "Q4Iris", "-", {"Ref": "Environment"}  ]]} }
+					] 
+            }
+        },
+		"Q4IrisCloudFront": {
+		    "Type": "AWS::CloudFront::Distribution",
+		    "Properties": {
+				"DistributionConfig": {
+				"Aliases": [{ "Fn::Join" : [ "", [ {"Ref": "RepositoryName"}, "-", {"Ref": "Environment"}, ".", {"Ref":"Domain"}]]}], 
+				"Origins": [
+					{
+						"DomainName": { "Fn::GetAtt": ["Q4IrisWidgetsS3Bucket", "DomainName"]},
+						"Id": { "Fn::Join" : [ "", [ {"Ref": "Q4IrisWidgetsS3Bucket"}, "-", {"Ref": "Environment"}  ]]},
+						"S3OriginConfig": {"OriginAccessIdentity": {"Ref": "S3OriginAccessIdentity"}}
+					}
+					
+				],
+				"Enabled": "true",
+				"DefaultCacheBehavior": {
+					"Compress": "true",
+					"DefaultTTL": "60",
+					"AllowedMethods": [
+						"GET",
+						"HEAD",
+						"OPTIONS"
+					],
+					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "Q4IrisWidgetsS3Bucket"}, "-", {"Ref": "Environment"}]]},
+					"ForwardedValues": {
+						"QueryString": "false",
+						"Cookies": {"Forward": "none"}
+					},
+					"ViewerProtocolPolicy": "allow-all"
+				},
+				"PriceClass": "PriceClass_100",
+				"ViewerCertificate": {
+					"AcmCertificateArn": { "Ref": "SSLCertificateARN"},
+					"SslSupportMethod" : "sni-only"
+					}
+				}
+			},
+			"DependsOn": ["Q4IrisWidgetsS3Bucket"]
+		}		
+	}
+}
