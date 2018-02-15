@@ -18,19 +18,26 @@
 			"Default":"Studio"
  		},
 		"Domain": {
-			"Description": "Public domain to access web site",
+			"Description": "Public domain for web site",
 			"Type": "String",
-			"AllowedValues" : ["studio-dev.q4inc.com", "studio-stage.q4inc.com", "studio-prod.q4inc.com"]
+			"AllowedValues" : ["*.studio.dev.q4inc.com", "*.studio.stage.q4inc.com", "*.studio.q4inc.com"]
  		},
 		"SSLARN" : {
-			"Description": "Public domain SSL ARNto access web site: For Dev: arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b",
+			"Description": "Public domain SSL ARN for web site: For Dev: arn:aws:acm:us-east-1:362592268871:certificate/de12f4e1-44c6-4a16-a459-a7a6a2cc5c79",
 			"Type": "String",
-			"AllowedValues" : ["arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b"],
-			"Default":"arn:aws:acm:us-east-1:362592268871:certificate/736206da-1fbf-41ff-a4a7-f6163aafbb5b"
- 		}  
-		
+			"AllowedValues" : ["arn:aws:acm:us-east-1:362592268871:certificate/de12f4e1-44c6-4a16-a459-a7a6a2cc5c79"],
+			"Default":"arn:aws:acm:us-east-1:362592268871:certificate/de12f4e1-44c6-4a16-a459-a7a6a2cc5c79"
+ 		}	
 	},
     "Resources": {
+        "cloudfrontoriginaccessidentity": {
+            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            "Properties": {
+                "CloudFrontOriginAccessIdentityConfig": {
+                    "Comment": { "Fn::Join" : [ "", [ "access-identity-", {"Ref": "BucketName"}  ]]} 
+                }
+            }
+        },		
         "S3WebBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
@@ -40,47 +47,93 @@
                     "ErrorDocument": "error.html"
                 },
 				"Tags" : [
-					{"Key" : "Product", "Value" : { "Fn::Join" : [ "", [ {"Ref": "Product"}, "-", {"Ref": "Environment"}  ]]} }
-					] 
-            }
+					{ "Key" : "Product", "Value" : { "Fn::Join" : [ "-", [ "Q4Web" , {"Ref": "Product"}, {"Ref": "Environment"},"S3Bucket" ]]} },
+					{ "Key" : "q4:Billing:Group", "Value" : { "Fn::Join" : [ "-", [ "Q4Web" , {"Ref": "Product"}, {"Ref": "Environment"} ]]} }
+				] 
+			}		
         },
+		"S3WebBucketPolicy" : {
+			  "Type" : "AWS::S3::BucketPolicy",
+			  "Properties" : {
+					"Bucket" : {"Ref" : "S3WebBucket"},
+					"PolicyDocument": {
+						"Id": "PolicyForCloudFrontPrivateContent",
+						"Statement":[{
+						"Action":["s3:GetObject"],
+						"Effect":"Allow",
+						"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3WebBucket" } , "/*" ]]},
+						"Principal":{ "AWS": { "Fn::Join" : [ "", [ "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ", {"Ref": "cloudfrontoriginaccessidentity"}  ]]}}
+					}]
+				}	
+			}
+		},
 		"Q4StudioCloudFront": {
 		    "Type": "AWS::CloudFront::Distribution",
 		    "Properties": {
 				"DistributionConfig": {
-				"Aliases": [{ "Ref":"Domain" } ], 
-				"Origins": [
-					{
-						"DomainName": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, ".s3.amazonaws.com"  ]]},
-						"Id": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
-						"S3OriginConfig": { "OriginAccessIdentity" : "origin-access-identity/cloudfront/E23P00FH1NU8U2"	}
-					}
-					
-				],
-				"Enabled": "true",
-				"DefaultCacheBehavior": {
-					"Compress": "true",
-					"DefaultTTL": "60",
-					"AllowedMethods": [
-						"GET",
-						"HEAD",
-						"OPTIONS"
+					"Aliases": [{ "Ref":"Domain" } ], 
+					"Origins": [
+						{
+							"DomainName": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, ".s3.amazonaws.com"  ]]},
+							"Id": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
+							"S3OriginConfig": {"OriginAccessIdentity": {"Fn::Join": ["", [   "origin-access-identity/cloudfront/", {"Ref": "cloudfrontoriginaccessidentity"}]]}}
+						}
 					],
-					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
-					"ForwardedValues": {
-						"QueryString": "false",
-						"Cookies": {"Forward": "none"}
+					"Enabled": "true",
+					"DefaultRootObject" : "index.html",
+					"DefaultCacheBehavior": {
+						"Compress": "true",
+						"DefaultTTL": "60",
+						"AllowedMethods": [
+							"GET",
+							"HEAD",
+							"OPTIONS"
+						],
+						"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "BucketName"}, "-", {"Ref": "Environment"}  ]]},
+						"ForwardedValues": {
+							"QueryString": "false",
+							"Cookies": {"Forward": "none"}
+						},
+						"ViewerProtocolPolicy": "allow-all"
 					},
-					"ViewerProtocolPolicy": "allow-all"
+					"HttpVersion" : "http2",
+					"PriceClass": "PriceClass_All",
+					"ViewerCertificate": {
+						"AcmCertificateArn": { "Ref": "SSLARN" },
+						"SslSupportMethod" : "sni-only",
+						"MinimumProtocolVersion" : "TLSv1.1_2016"
+						},
+					"CustomErrorResponses" : [ 
+						{
+						  "ErrorCachingMinTTL" : "86400",
+						  "ErrorCode" : "400",
+						  "ResponseCode" : "200",
+						  "ResponsePagePath" : "/index.html"
+						},
+						{
+						  "ErrorCachingMinTTL" : "86400",
+						  "ErrorCode" : "403",
+						  "ResponseCode" : "200",
+						  "ResponsePagePath" : "/index.html"
+						},
+						{
+						  "ErrorCachingMinTTL" : "86400",
+						  "ErrorCode" : "404",
+						  "ResponseCode" : "200",
+						  "ResponsePagePath" : "/index.html"
+						}
+					]
 				},
-				"PriceClass": "PriceClass_All",
-				"ViewerCertificate": {
-					"AcmCertificateArn": { "Ref": "SSLARN" },
-					"SslSupportMethod" : "sni-only"
-					}
-				}
+				"Tags" : [
+					{ "Key" : "Product", "Value" : { "Fn::Join" : [ "-", [ "Q4Web" , {"Ref": "Product"}, {"Ref": "Environment"},"Cloudfront" ]]} },
+					{ "Key" : "q4:Billing:Group", "Value" : { "Fn::Join" : [ "-", [ "Q4Web" , {"Ref": "Product"}, {"Ref": "Environment"} ]]} }
+				] 
 			},
-			"DependsOn": ["S3WebBucket"]
+			"DependsOn": ["S3WebBucket", "S3WebBucketPolicy", "cloudfrontoriginaccessidentity"]
 		}		
 	}
 }
+
+
+
+ 
