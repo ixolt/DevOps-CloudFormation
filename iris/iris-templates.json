@@ -1,0 +1,211 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "3 S3 buckets, IAM cli user for iris templates.",
+    "Resources": {
+        "CLIUser": {
+            "Type": "AWS::IAM::User",
+            "Properties": {
+                "Path": "/",
+                "UserName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "iris",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            "template",
+                            "user"
+                        ]
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "templatebucketaccess",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:s3:::iris-templates-dev/*",
+                                        "arn:aws:s3:::iris-templates-stage/*",
+                                        "arn:aws:s3:::iris-templates-prod/*"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:ListAllMyBuckets"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "CLIUserAccessKey": {
+            "Type": "AWS::IAM::AccessKey",
+            "Properties": {
+                "UserName": {
+                    "Ref": "CLIUser"
+                }
+            }
+        },
+        "IrisTemplatesDev": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": "iris-templates-dev"
+            }
+        },
+        "IrisTemplatesDevPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Id": "Give access to user",
+                    "Statement": [
+                        {
+                            "Sid": "AllAccess",
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "IrisTemplatesDev"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::GetAtt": [
+                                        "CLIUser",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "Bucket": {
+                    "Ref": "IrisTemplatesDev"
+                }
+            }
+        },
+        "IrisTemplatesStage": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": "iris-templates-stage"
+            }
+        },
+        "IrisTemplatesStagePolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Id": "Give access to user",
+                    "Statement": [
+                        {
+                            "Sid": "AllAccess",
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "IrisTemplatesStage"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::GetAtt": [
+                                        "CLIUser",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "Bucket": {
+                    "Ref": "IrisTemplatesStage"
+                }
+            }
+        },
+        "IrisTemplatesProd": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": "iris-templates-prod"
+            }
+        },
+        "IrisTemplatesProdPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Id": "Give access to user",
+                    "Statement": [
+                        {
+                            "Sid": "AllAccess",
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "IrisTemplatesProd"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::GetAtt": [
+                                        "CLIUser",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "Bucket": {
+                    "Ref": "IrisTemplatesProd"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "CLIAccessKey": {
+            "Value": {
+                "Ref": "CLIUserAccessKey"
+            }
+        },
+        "CLIAccessKeySecret": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "CLIUserAccessKey",
+                    "SecretAccessKey"
+                ]
+            }
+        }
+    }
+}

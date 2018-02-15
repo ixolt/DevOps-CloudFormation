@@ -1,0 +1,320 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Creates 1 x S3 bucket, 1 x CloudFront distribution pointing to the S3 bucket and 1 x Route 53 alias pointing to CloudFront",
+    "Parameters": {
+        "Environment": {
+            "Description": "Environment dev, stage, prod",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "stage",
+                "prod"
+            ]
+        },
+       "RepositoryName": {
+            "Description": "The name of the repository i.e. iris-widgets",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Product",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    "Q4Desktop",
+                                    {
+                                        "Ref": "RepositoryName"
+                                    },
+                                    {
+                                        "Ref": "Environment"
+                                    },
+                                    "S3Bucket"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "q4:Billing:Group",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    "Q4Desktop",
+                                    {
+                                        "Ref": "RepositoryName"
+                                    },
+                                    {
+                                        "Ref": "Environment"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "CloudFrontOriginAccessIdentity": {
+            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            "Properties": {
+                "CloudFrontOriginAccessIdentityConfig": {
+                    "Comment": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "access-identity-",
+                                {
+                                    "Ref": "RepositoryName"
+                                }
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "S3BucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "Bucket": {
+                    "Ref": "S3Bucket"
+                },
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref":"S3Bucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            },
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ",
+                                            {
+                                                "Ref": "CloudFrontOriginAccessIdentity"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "CloudFront": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Properties": {
+                "DistributionConfig": {
+                    "Origins": [
+                        {
+                            "DomainName": {
+                                "Fn::GetAtt": [
+                                    "S3Bucket",
+                                    "DomainName"
+                                ]
+                            },
+                            "Id": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        {
+                                            "Ref": "S3Bucket"
+                                        },
+                                        "-",
+                                        {
+                                            "Ref": "Environment"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "S3OriginConfig": {
+                                "OriginAccessIdentity": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "origin-access-identity/cloudfront/",
+                                            {
+                                                "Ref": "CloudFrontOriginAccessIdentity"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "Enabled": "true",
+                    "DefaultCacheBehavior": {
+                        "Compress": "true",
+                        "DefaultTTL": "60",
+                        "AllowedMethods": [
+                            "GET",
+                            "HEAD",
+                            "OPTIONS"
+                        ],
+                        "TargetOriginId": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "S3Bucket"
+                                    },
+                                    "-",
+                                    {
+                                        "Ref": "Environment"
+                                    }
+                                ]
+                            ]
+                        },
+                        "ForwardedValues": {
+                            "QueryString": "false",
+                            "Cookies": {
+                                "Forward": "none"
+                            }
+                        },
+                        "ViewerProtocolPolicy": "allow-all"
+                    },
+                    "PriceClass": "PriceClass_All"
+                },
+                "Tags": [
+                    {
+                        "Key": "Product",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    "Q4Desktop",
+                                    {
+                                        "Ref": "RepositoryName"
+                                    },
+                                    {
+                                        "Ref": "Environment"
+                                    },
+                                    "CloudFrontDistribution"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "q4:Billing:Group",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    "Q4Desktop",
+                                    {
+                                        "Ref": "RepositoryName"
+                                    },
+                                    {
+                                        "Ref": "Environment"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            },
+            "DependsOn": [
+                "S3Bucket"
+            ]
+        },
+        "CLIUser": {
+            "Type": "AWS::IAM::User",
+            "Properties": {
+                "Path": "/",
+                "UserName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "iris",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            "template",
+                            "user"
+                        ]
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "bucketaccess",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "S3Bucket"
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        }
+
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:ListAllMyBuckets"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "CLIUserAccessKey": {
+            "Type": "AWS::IAM::AccessKey",
+            "Properties": {
+                "UserName": {
+                    "Ref": "CLIUser"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "CLIAccessKey": {
+            "Value": {
+                "Ref": "CLIUserAccessKey"
+            }
+        },
+        "CLIAccessKeySecret": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "CLIUserAccessKey",
+                    "SecretAccessKey"
+                ]
+            }
+        }
+    }
+}
