@@ -1,5 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Creates 1 x S3 bucket, 1 x CloudFront distribution pointing to the S3 bucket and 1 x Route 53 alias pointing to CloudFront",
 	"Parameters" : {
 		"Environment": {
 			"Description": "Environment dev, stage, prod",
@@ -11,6 +12,12 @@
 			"Type": "String",
 			"AllowedValues" : ["q4app.net"]
  		},
+		"DomainID": {
+			"Description": "Route 53 Hosted Zone ID, if empty CNAME will NOT be created",
+			"Type": "String",
+			"AllowedValues": ["","Z1JR1GMK9XEL77"],
+			"Default":"Z1JR1GMK9XEL77"
+		},
 		"RepositoryName": {
 			"Description": "The name of the repository i.e. iris-widgets",
 			"Type": "String"
@@ -22,30 +29,81 @@
 			"Default": "arn:aws:acm:us-east-1:632976446797:certificate/ac66814c-3e21-41e5-87bf-e31a59642d0a"
 		}
 	},
+	"Conditions" : {
+		"CreateRoute53Aliases" : {
+			"Fn::Not": [{"Fn::Equals" : [{"Ref" : "DomainID"}, ""]}]
+		},
+		"IsProd": {
+			"Fn::Equals": [{"Ref": "Environment"},"prod"]
+		},
+		"IsNonProd": {
+			"Fn::Not" : [{
+				"Fn::Equals" : [ {"Ref" : "Environment"}, "prod"]
+				}]
+			},
+		"CreateRoute53AliasProd" : {
+			"Fn::And":[
+				{"Condition": "CreateRoute53Aliases"},
+				{"Condition": "IsProd"}
+			]
+		},
+		"CreateRoute53AliasNonProd" : {
+			"Fn::And":[
+				{"Condition": "CreateRoute53Aliases"},
+				{"Fn::Not": [{"Condition":"IsProd"}]}
+			]
+		}		
+	},
     "Resources": {
-        "Q4IrisWidgetsS3Bucket": {
+        "S3Bucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
 				"Tags" : [
-					{"Key" : "Product", "Value" : { "Fn::Join" : [ "", [ "Q4Iris", "-", {"Ref": "Environment"}  ]]} }
+					{"Key" : "Product", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"},"S3Bucket"]]} },
+					{ "Key" : "q4:Billing:Group", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"}]]} }
 					] 
             }
         },
-		"Q4IrisCloudFront": {
+		"CloudFrontOriginAccessIdentity": {
+            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            "Properties": {
+                "CloudFrontOriginAccessIdentityConfig": {
+                    "Comment": { "Fn::Join" : ["", ["access-identity-",{"Ref":"RepositoryName"}]]}
+                }
+            }
+        },
+		"S3BucketPolicy" : {
+			"Type" : "AWS::S3::BucketPolicy",
+			"Properties" : {
+				"Bucket" : {"Ref" : "S3Bucket"},
+				"PolicyDocument": {
+					"Statement":[{
+						"Action":["s3:GetObject"],
+						"Effect":"Allow",
+						"Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "S3Bucket" } , "/*" ]]},
+						"Principal":{ "AWS": { "Fn::Join" : [ "", ["arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ", {"Ref":"CloudFrontOriginAccessIdentity"}]]}}
+						}]
+				}
+			}
+		},
+		"CloudFrontNonProd": {
 		    "Type": "AWS::CloudFront::Distribution",
+			"Condition": "IsNonProd",
 		    "Properties": {
 				"DistributionConfig": {
-				"Aliases": [{ "Fn::Join" : [ "", [ {"Ref": "RepositoryName"}, "-", {"Ref": "Environment"}, ".", {"Ref":"Domain"}]]}], 
-				"Origins": [
+					"Aliases": [
+						{"Fn::Join" : [ "", [ {"Ref": "RepositoryName"}, "-", {"Ref": "Environment"}, ".", {"Ref":"Domain"}]]}
+					],			
+					"Origins": [
 					{
-						"DomainName": { "Fn::GetAtt": ["Q4IrisWidgetsS3Bucket", "DomainName"]},
-						"Id": { "Fn::Join" : [ "", [ {"Ref": "Q4IrisWidgetsS3Bucket"}, "-", {"Ref": "Environment"}  ]]},
-						"S3OriginConfig": {}
+						"DomainName": { "Fn::GetAtt": ["S3Bucket", "DomainName"]},
+						"Id": { "Fn::Join" : [ "", [ {"Ref": "S3Bucket"}, "-", {"Ref": "Environment"}]]},
+						"S3OriginConfig": {"OriginAccessIdentity": {"Fn::Join": ["", ["origin-access-identity/cloudfront/",{"Ref": "CloudFrontOriginAccessIdentity"}]]}}
 					}
 					
 				],
-				"Enabled": "true",
-				"DefaultCacheBehavior": {
+					"Enabled": "true",
+					"DefaultCacheBehavior": {
 					"Compress": "true",
 					"DefaultTTL": "60",
 					"AllowedMethods": [
@@ -53,21 +111,100 @@
 						"HEAD",
 						"OPTIONS"
 					],
-					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "Q4IrisWidgetsS3Bucket"}, "-", {"Ref": "Environment"}]]},
+					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "S3Bucket"}, "-", {"Ref": "Environment"}]]},
 					"ForwardedValues": {
 						"QueryString": "false",
 						"Cookies": {"Forward": "none"}
 					},
 					"ViewerProtocolPolicy": "allow-all"
 				},
-				"PriceClass": "PriceClass_100",
-				"ViewerCertificate": {
+					"PriceClass": "PriceClass_All",
+					"ViewerCertificate": {
 					"AcmCertificateArn": { "Ref": "SSLCertificateARN"},
 					"SslSupportMethod" : "sni-only"
 					}
-				}
+				},
+				"Tags" : [
+					{"Key" : "Product", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"},"CloudFrontDistribution"]]} },
+					{ "Key" : "q4:Billing:Group", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"}]]} }
+					] 
 			},
-			"DependsOn": ["Q4IrisWidgetsS3Bucket"]
-		}		
+			"DependsOn": ["S3Bucket"]
+		},	
+		"CloudFrontProd": {
+		    "Type": "AWS::CloudFront::Distribution",
+			"Condition": "IsProd",
+		    "Properties": {
+				"DistributionConfig": {
+					"Aliases": [
+						{ "Fn::Join" : [ "", [ {"Ref": "RepositoryName"}, ".", {"Ref":"Domain"}]]}
+					],
+					"Origins": [
+					{
+						"DomainName": { "Fn::GetAtt": ["S3Bucket", "DomainName"]},
+						"Id": { "Fn::Join" : [ "", [ {"Ref": "S3Bucket"}, "-", {"Ref": "Environment"}]]},
+						"S3OriginConfig": {"OriginAccessIdentity": {"Fn::Join": ["", ["origin-access-identity/cloudfront/",{"Ref": "CloudFrontOriginAccessIdentity"}]]}}
+					}
+					
+				],
+					"Enabled": "true",
+					"DefaultCacheBehavior": {
+					"Compress": "true",
+					"DefaultTTL": "60",
+					"AllowedMethods": [
+						"GET",
+						"HEAD",
+						"OPTIONS"
+					],
+					"TargetOriginId": { "Fn::Join" : [ "", [ {"Ref": "S3Bucket"}, "-", {"Ref": "Environment"}]]},
+					"ForwardedValues": {
+						"QueryString": "false",
+						"Cookies": {"Forward": "none"}
+					},
+					"ViewerProtocolPolicy": "allow-all"
+				},
+					"PriceClass": "PriceClass_All",
+					"ViewerCertificate": {
+					"AcmCertificateArn": { "Ref": "SSLCertificateARN"},
+					"SslSupportMethod" : "sni-only"
+					}
+				},
+				"Tags" : [
+					{"Key" : "Product", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"},"CloudFrontDistribution"]]} },
+					{ "Key" : "q4:Billing:Group", "Value" : { "Fn::Join" : [ "-", [ "Q4Desktop", {"Ref": "RepositoryName"}, {"Ref": "Environment"}]]} }
+					] 
+			},
+			"DependsOn": ["S3Bucket"]
+		},	
+		"Route53AliasNonProd": {
+			"Type" : "AWS::Route53::RecordSetGroup",
+			"Condition": "CreateRoute53AliasNonProd",
+			"Properties": {
+				"HostedZoneId" : {"Ref":"DomainID"},
+				"RecordSets": [{
+					"Name" : {"Fn::Join" : [ "", [{"Ref" : "RepositoryName"}, "-", {"Ref": "Environment"}, ".", {"Ref" : "Domain"}]]},
+					"Type" : "A",
+					"AliasTarget" : {
+						"HostedZoneId" : "Z2FDTNDATAQYW2",
+						"DNSName" : { "Fn::GetAtt" : ["CloudFrontNonProd", "DomainName"]}
+					}
+				}]
+            }
+		},
+		"Route53AliasProd": {
+			"Type" : "AWS::Route53::RecordSetGroup",
+			"Condition": "CreateRoute53AliasProd",
+			"Properties": {
+				"HostedZoneId" : {"Ref":"DomainID"},
+				"RecordSets": [{
+					"Name" : {"Fn::Join" : [ "", [{"Ref" : "RepositoryName"}, ".", {"Ref" : "Domain"}]]},
+					"Type" : "A",
+					"AliasTarget" : {
+						"HostedZoneId" : "Z2FDTNDATAQYW2",
+						"DNSName" : { "Fn::GetAtt" : ["CloudFrontProd", "DomainName"]}
+					}
+				}]
+            }
+		}
 	}
 }
